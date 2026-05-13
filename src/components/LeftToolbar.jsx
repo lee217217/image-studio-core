@@ -84,45 +84,45 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
 
       <div className="w-8 h-px bg-line my-1" />
 
-      <button
-        type="button"
-        className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
-        title="Templates"
-        aria-label="Templates"
-        onClick={() => togglePanel('templates')}
-      >
-        <Icon name="layout" size={20} />
-      </button>
+     <button
+  type="button"
+  className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
+  title="Templates"
+  aria-label="Templates"
+  onClick={() => togglePanel('templates')}
+>
+  <Icon name="square" size={20} />
+</button>
 
-      <button
-        type="button"
-        className={`tool-btn ${activePanel === 'adjust' ? 'tool-btn-active' : ''}`}
-        title="Photo Adjustments"
-        aria-label="Photo Adjustments"
-        onClick={() => togglePanel('adjust')}
-      >
-        <Icon name="sliders" size={20} />
-      </button>
+<button
+  type="button"
+  className={`tool-btn ${activePanel === 'adjust' ? 'tool-btn-active' : ''}`}
+  title="Photo Adjustments"
+  aria-label="Photo Adjustments"
+  onClick={() => togglePanel('adjust')}
+>
+  <Icon name="image" size={20} />
+</button>
 
-      <button
-        type="button"
-        className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
-        title="Layers"
-        aria-label="Layers"
-        onClick={() => togglePanel('layers')}
-      >
-        <Icon name="layers" size={20} />
-      </button>
+<button
+  type="button"
+  className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
+  title="Layers"
+  aria-label="Layers"
+  onClick={() => togglePanel('layers')}
+>
+  <Icon name="layers" size={20} />
+</button>
 
-      <button
-        type="button"
-        className={`tool-btn ${activePanel === 'ai' ? 'tool-btn-active' : ''}`}
-        title="AI tools (coming soon)"
-        aria-label="AI tools"
-        onClick={() => togglePanel('ai')}
-      >
-        <Icon name="sparkle" size={20} />
-      </button>
+<button
+  type="button"
+  className={`tool-btn ${activePanel === 'ai' ? 'tool-btn-active' : ''}`}
+  title="AI tools (coming soon)"
+  aria-label="AI tools"
+  onClick={() => togglePanel('ai')}
+>
+  <Icon name="sparkle" size={20} />
+</button>
 
       <input
         ref={fileRef}
