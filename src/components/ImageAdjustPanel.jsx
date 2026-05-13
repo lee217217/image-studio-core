@@ -82,7 +82,7 @@ export default function ImageAdjustPanel({ onClose }) {
   }
 
   return (
-    <aside className="w-80 shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll">
+    <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll">
       <div className="sticky top-0 z-10 border-b border-surface-200 bg-surface-50/95 px-4 py-4 backdrop-blur dark:border-surface-800 dark:bg-surface-950/95">
         <div className="flex items-start justify-between gap-3">
           <div>

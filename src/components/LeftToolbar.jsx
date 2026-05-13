@@ -12,7 +12,7 @@ import {
   addImageFromFile
 } from '../editor/editorActions.js';
 
-export default function LeftToolbar({ activePanel, onActivatePanel }) {
+export default function LeftToolbar({ activePanel, onActivatePanel, mobile = false }) {
   const { canvas } = useEditor();
   const fileRef = useRef(null);
   const showToast = useEditorStore((s) => s.showToast);
@@ -68,7 +68,13 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
   ];
 
   return (
-    <aside className="w-14 flex-shrink-0 border-r border-line bg-surface-1 flex flex-col items-center py-2 gap-1">
+    <aside
+  className={
+    mobile
+      ? 'h-16 w-full border-t border-line bg-surface-1 flex items-center gap-1 overflow-x-auto px-2'
+      : 'w-14 flex-shrink-0 border-r border-line bg-surface-1 flex flex-col items-center py-2 gap-1'
+  }
+>
       {buttons.map((b) => (
         <button
           key={b.name}
@@ -82,7 +88,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
         </button>
       ))}
 
-      <div className="w-8 h-px bg-line my-1" />
+      <div className={mobile ? 'h-8 w-px bg-line mx-1 shrink-0' : 'w-8 h-px bg-line my-1'} />
 
      <button
   type="button"
