@@ -3,7 +3,13 @@ import Icon from './Icon.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import {
-  addText, addRect, addCircle, addLine, addArrow, addLabel, addImageFromFile
+  addText,
+  addRect,
+  addCircle,
+  addLine,
+  addArrow,
+  addLabel,
+  addImageFromFile
 } from '../editor/editorActions.js';
 
 export default function LeftToolbar({ activePanel, onActivatePanel }) {
@@ -18,20 +24,40 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
   async function onFile(e) {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
+
     if (!file || !canvas) return;
+
     try {
       await addImageFromFile(canvas, file);
     } catch (err) {
-      showToast({ type: 'error', message: err.message || 'Could not load image.' });
+      showToast({
+        type: 'error',
+        message: err.message || 'Could not load image.'
+      });
     }
   }
 
   function safe(fn) {
-    return () => { if (canvas) fn(canvas); };
+    return () => {
+      if (canvas) fn(canvas);
+    };
+  }
+
+  function togglePanel(panelName) {
+    onActivatePanel(activePanel === panelName ? null : panelName);
   }
 
   const buttons = [
-    { name: 'Select', icon: 'cursor', onClick: () => { if (canvas) { canvas.discardActiveObject(); canvas.requestRenderAll(); } } },
+    {
+      name: 'Select',
+      icon: 'cursor',
+      onClick: () => {
+        if (canvas) {
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
+        }
+      }
+    },
     { name: 'Upload image', icon: 'image', onClick: pickFile },
     { name: 'Add text', icon: 'text', onClick: safe(addText) },
     { name: 'Add rectangle', icon: 'square', onClick: safe(addRect) },
@@ -50,6 +76,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
           title={b.name}
           aria-label={b.name}
           onClick={b.onClick}
+          type="button"
         >
           <Icon name={b.icon} size={20} />
         </button>
@@ -58,26 +85,41 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
       <div className="w-8 h-px bg-line my-1" />
 
       <button
-  type="button"
-  onClick={() => onActivatePanel(activePanel === 'adjust' ? null : 'adjust')}
-  className={activePanel === 'adjust' ? 'tool-button active' : 'tool-button'}
-  title="Photo Adjustments"
->
-  Adjust
-</button>
+        type="button"
+        className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
+        title="Templates"
+        aria-label="Templates"
+        onClick={() => togglePanel('templates')}
+      >
+        <Icon name="layout" size={20} />
+      </button>
+
       <button
+        type="button"
+        className={`tool-btn ${activePanel === 'adjust' ? 'tool-btn-active' : ''}`}
+        title="Photo Adjustments"
+        aria-label="Photo Adjustments"
+        onClick={() => togglePanel('adjust')}
+      >
+        <Icon name="sliders" size={20} />
+      </button>
+
+      <button
+        type="button"
         className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
         title="Layers"
         aria-label="Layers"
-        onClick={() => onActivatePanel(activePanel === 'layers' ? null : 'layers')}
+        onClick={() => togglePanel('layers')}
       >
         <Icon name="layers" size={20} />
       </button>
+
       <button
+        type="button"
         className={`tool-btn ${activePanel === 'ai' ? 'tool-btn-active' : ''}`}
         title="AI tools (coming soon)"
         aria-label="AI tools"
-        onClick={() => onActivatePanel(activePanel === 'ai' ? null : 'ai')}
+        onClick={() => togglePanel('ai')}
       >
         <Icon name="sparkle" size={20} />
       </button>
