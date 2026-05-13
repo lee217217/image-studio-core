@@ -48,7 +48,7 @@ export default function LayersPanel({ onClose }) {
   }
 
   return (
-    <div className="panel border-t border-line flex flex-col h-48 flex-shrink-0">
+    <div className="panel border-t border-line flex flex-col h-64 md:h-48 w-full flex-shrink-0">
       <div className="flex items-center justify-between px-3 py-2 border-b border-line">
         <div className="panel-heading">Layers</div>
         <div className="flex items-center gap-1">
