@@ -12,6 +12,7 @@ import AiPanel from './components/AiPanel.jsx';
 import SizePresetModal from './components/SizePresetModal.jsx';
 import ExportPanel from './components/ExportPanel.jsx';
 import Toast from './components/Toast.jsx';
+import CropResizePanel from './components/CropResizePanel.jsx';
 
 /**
  * App is the high-level layout shell.
@@ -42,16 +43,20 @@ export default function App() {
             />
 
             {activePanel === 'templates' && (
-              <TemplatePanel onClose={() => setActivePanel(null)} />
-            )}
+  <TemplatePanel onClose={() => setActivePanel(null)} />
+)}
 
-            {activePanel === 'adjust' && (
-              <ImageAdjustPanel onClose={() => setActivePanel(null)} />
-            )}
+{activePanel === 'adjust' && (
+  <ImageAdjustPanel onClose={() => setActivePanel(null)} />
+)}
 
-            {activePanel === 'ai' && (
-              <AiPanel onClose={() => setActivePanel(null)} />
-            )}
+{activePanel === 'crop' && (
+  <CropResizePanel onClose={() => setActivePanel(null)} />
+)}
+
+{activePanel === 'ai' && (
+  <AiPanel onClose={() => setActivePanel(null)} />
+)}
 
             <main className="flex-1 flex flex-col min-w-0 min-h-0">
               {canvasStage}
