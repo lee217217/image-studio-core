@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import {
@@ -50,17 +50,26 @@ export default function CropResizePanel({ onClose }) {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectionVersion = useEditorStore((s) => s.selectionVersion);
 
-  const selectedImage = useMemo(() => {
-    if (!canvas) return null;
-    const obj = canvas.getActiveObject();
-    return isImageObject(obj) ? obj : null;
-  }, [canvas, selectedIds, selectionVersion]);
+const selectedImage = useMemo(() => {
+  if (!canvas) return null;
+  const obj = canvas.getActiveObject();
+  return isImageObject(obj) ? obj : null;
+}, [canvas, selectedIds, selectionVersion]);
 
-  const [width, setWidth] = useState(() => canvas?.getWidth?.() || 1080);
-  const [height, setHeight] = useState(() => canvas?.getHeight?.() || 1080);
-  const [mode, setMode] = useState('scale-content');
-  const [angle, setAngle] = useState(0);
-  const [activePreset, setActivePreset] = useState(null);
+const [width, setWidth] = useState(() => canvas?.getWidth?.() || 1080);
+const [height, setHeight] = useState(() => canvas?.getHeight?.() || 1080);
+const [mode, setMode] = useState('scale-content');
+const [angle, setAngle] = useState(0);
+const [activePreset, setActivePreset] = useState(null);
+
+useEffect(() => {
+  if (!selectedImage) {
+    setAngle(0);
+    return;
+  }
+
+  setAngle(Math.round(selectedImage.angle || 0));
+}, [selectedImage, selectionVersion]);
 
   function applyResize(nextWidth = width, nextHeight = height, nextMode = mode) {
     if (!canvas) return;
@@ -76,11 +85,15 @@ export default function CropResizePanel({ onClose }) {
   }
 
   function applyPreset(preset) {
-    setActivePreset(preset.id);
-    setWidth(preset.width);
-    setHeight(preset.height);
-    applyResize(preset.width, preset.height, mode);
-  }
+  setActivePreset(preset.id);
+  setWidth(preset.width);
+  setHeight(preset.height);
+
+  // Presets should only change the canvas size.
+  // Do not scale existing content repeatedly, otherwise images keep shrinking
+  // when switching YouTube -> Story -> YouTube.
+  applyResize(preset.width, preset.height, 'keep');
+}
 
   function withImage(fn, message) {
     if (!canvas || !selectedImage) return;
