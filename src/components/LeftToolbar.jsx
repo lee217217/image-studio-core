@@ -96,6 +96,16 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
 
 <button
   type="button"
+  className={`tool-btn ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
+  title="Crop / Resize"
+  aria-label="Crop / Resize"
+  onClick={() => togglePanel('crop')}
+>
+  <Icon name="square" size={20} />
+</button>
+
+<button
+  type="button"
   className={`tool-btn ${activePanel === 'adjust' ? 'tool-btn-active' : ''}`}
   title="Photo Adjustments"
   aria-label="Photo Adjustments"
@@ -123,6 +133,8 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
 >
   <Icon name="sparkle" size={20} />
 </button>
+
+
 
       <input
         ref={fileRef}
