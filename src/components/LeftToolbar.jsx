@@ -1,0 +1,94 @@
+import { useRef } from 'react';
+import Icon from './Icon.jsx';
+import { useEditor } from '../hooks/useEditor.js';
+import { useEditorStore } from '../store/editorStore.js';
+import {
+  addText, addRect, addCircle, addLine, addArrow, addLabel, addImageFromFile
+} from '../editor/editorActions.js';
+
+export default function LeftToolbar({ activePanel, onActivatePanel }) {
+  const { canvas } = useEditor();
+  const fileRef = useRef(null);
+  const showToast = useEditorStore((s) => s.showToast);
+
+  function pickFile() {
+    fileRef.current && fileRef.current.click();
+  }
+
+  async function onFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file || !canvas) return;
+    try {
+      await addImageFromFile(canvas, file);
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Could not load image.' });
+    }
+  }
+
+  function safe(fn) {
+    return () => { if (canvas) fn(canvas); };
+  }
+
+  const buttons = [
+    { name: 'Select', icon: 'cursor', onClick: () => { if (canvas) { canvas.discardActiveObject(); canvas.requestRenderAll(); } } },
+    { name: 'Upload image', icon: 'image', onClick: pickFile },
+    { name: 'Add text', icon: 'text', onClick: safe(addText) },
+    { name: 'Add rectangle', icon: 'square', onClick: safe(addRect) },
+    { name: 'Add circle', icon: 'circle', onClick: safe(addCircle) },
+    { name: 'Add line', icon: 'line', onClick: safe(addLine) },
+    { name: 'Add arrow', icon: 'arrow', onClick: safe(addArrow) },
+    { name: 'Add label', icon: 'label', onClick: safe(addLabel) }
+  ];
+
+  return (
+    <aside className="w-14 flex-shrink-0 border-r border-line bg-surface-1 flex flex-col items-center py-2 gap-1">
+      {buttons.map((b) => (
+        <button
+          key={b.name}
+          className="tool-btn"
+          title={b.name}
+          aria-label={b.name}
+          onClick={b.onClick}
+        >
+          <Icon name={b.icon} size={20} />
+        </button>
+      ))}
+
+      <div className="w-8 h-px bg-line my-1" />
+
+      <button
+        className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
+        title="Templates"
+        aria-label="Templates"
+        onClick={() => onActivatePanel(activePanel === 'templates' ? null : 'templates')}
+      >
+        <Icon name="template" size={20} />
+      </button>
+      <button
+        className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
+        title="Layers"
+        aria-label="Layers"
+        onClick={() => onActivatePanel(activePanel === 'layers' ? null : 'layers')}
+      >
+        <Icon name="layers" size={20} />
+      </button>
+      <button
+        className={`tool-btn ${activePanel === 'ai' ? 'tool-btn-active' : ''}`}
+        title="AI tools (coming soon)"
+        aria-label="AI tools"
+        onClick={() => onActivatePanel(activePanel === 'ai' ? null : 'ai')}
+      >
+        <Icon name="sparkle" size={20} />
+      </button>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onFile}
+      />
+    </aside>
+  );
+}
