@@ -65,13 +65,13 @@ export default function App() {
               </main>
 
               {activePanel && (
-                <div className="fixed inset-x-0 bottom-16 z-40 max-h-[68vh] overflow-hidden rounded-t-3xl border-t border-surface-200 bg-surface-50 shadow-2xl dark:border-surface-800 dark:bg-surface-950">
-                  <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-surface-300 dark:bg-surface-700" />
-                  <div className="max-h-[65vh] overflow-y-auto">
-                    {renderPanel()}
-                  </div>
-                </div>
-              )}
+  <div className="fixed left-0 right-0 bottom-16 z-40 w-screen max-h-[68vh] overflow-hidden rounded-t-3xl border-t border-surface-200 bg-surface-50 shadow-2xl dark:border-surface-800 dark:bg-surface-950">
+    <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-surface-300 dark:bg-surface-700" />
+    <div className="max-h-[65vh] w-full overflow-y-auto">
+      {renderPanel()}
+    </div>
+  </div>
+)}
 
               <div className="fixed inset-x-0 bottom-0 z-50">
                 <LeftToolbar
