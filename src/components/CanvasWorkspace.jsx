@@ -178,7 +178,7 @@ export default function CanvasWorkspace({ renderShell }) {
   const canvasStage = (
     <div
       ref={stageRef}
-      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-center justify-center p-8"
+      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-center justify-center p-3 md:p-8"
     >
       <div
         className="shadow-xl ring-1 ring-black/10 bg-white"

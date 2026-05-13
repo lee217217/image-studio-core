@@ -92,7 +92,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
 
      <button
   type="button"
-  className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
+  className={`tool-btn shrink-0 ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
   title="Templates"
   aria-label="Templates"
   onClick={() => togglePanel('templates')}
@@ -102,7 +102,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
 
 <button
   type="button"
-  className={`tool-btn ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
+  className={`tool-btn shrink-0 ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
   title="Crop / Resize"
   aria-label="Crop / Resize"
   onClick={() => togglePanel('crop')}
@@ -112,7 +112,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
 
 <button
   type="button"
-  className={`tool-btn ${activePanel === 'adjust' ? 'tool-btn-active' : ''}`}
+  className={`tool-btn shrink-0 ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
   title="Photo Adjustments"
   aria-label="Photo Adjustments"
   onClick={() => togglePanel('adjust')}
@@ -122,7 +122,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
 
 <button
   type="button"
-  className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
+  className={`tool-btn shrink-0 ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
   title="Layers"
   aria-label="Layers"
   onClick={() => togglePanel('layers')}
@@ -132,7 +132,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
 
 <button
   type="button"
-  className={`tool-btn ${activePanel === 'ai' ? 'tool-btn-active' : ''}`}
+  className={`tool-btn shrink-0 ${activePanel === 'crop' ? 'tool-btn-active' : ''}`}
   title="AI tools (coming soon)"
   aria-label="AI tools"
   onClick={() => togglePanel('ai')}
