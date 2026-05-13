@@ -58,13 +58,13 @@ export default function LeftToolbar({ activePanel, onActivatePanel }) {
       <div className="w-8 h-px bg-line my-1" />
 
       <button
-        className={`tool-btn ${activePanel === 'templates' ? 'tool-btn-active' : ''}`}
-        title="Templates"
-        aria-label="Templates"
-        onClick={() => onActivatePanel(activePanel === 'templates' ? null : 'templates')}
-      >
-        <Icon name="template" size={20} />
-      </button>
+  type="button"
+  onClick={() => onActivatePanel(activePanel === 'adjust' ? null : 'adjust')}
+  className={activePanel === 'adjust' ? 'tool-button active' : 'tool-button'}
+  title="Photo Adjustments"
+>
+  Adjust
+</button>
       <button
         className={`tool-btn ${activePanel === 'layers' ? 'tool-btn-active' : ''}`}
         title="Layers"

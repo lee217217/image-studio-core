@@ -50,7 +50,8 @@ export default function App() {
               onActivatePanel={setActivePanel}
             />
             {activePanel === 'templates' && <TemplatePanel onClose={() => setActivePanel(null)} />}
-            {activePanel === 'ai' && <AiPanel onClose={() => setActivePanel(null)} />}
+{activePanel === 'adjust' && <ImageAdjustPanel onClose={() => setActivePanel(null)} />}
+{activePanel === 'ai' && <AiPanel onClose={() => setActivePanel(null)} />}
 
             <main className="flex-1 flex flex-col min-w-0 min-h-0">
               {canvasStage}
