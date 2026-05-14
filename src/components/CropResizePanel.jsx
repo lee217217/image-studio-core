@@ -1,368 +1,275 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Icon from './Icon.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import {
   CANVAS_PRESETS,
-  centerObject,
-  fillObjectToCanvas,
-  fitObjectToCanvas,
-  flipObject,
-  isImageObject,
+  RESIZE_MODES,
   resizeCanvas,
+  isImageObject,
+  centerObject,
+  fitObjectToCanvas,
+  fillObjectToCanvas,
   rotateObject,
+  flipObject,
   setObjectAngle
 } from '../editor/cropResizeActions.js';
 
-const T = {
-  title: 'Crop / Resize',
-  subtitle: 'Choose a format, resize the canvas, then fit or fill your selected image.',
-  format: 'Format',
-  customSize: 'Custom size',
-  resizeMode: 'Resize mode',
-  selectedImage: 'Selected image',
-  noImage: 'Select an image on the canvas to use image tools.',
-  width: 'Width',
-  height: 'Height',
-  keep: 'Canvas only',
-  centerContent: 'Center content',
-  scaleContent: 'Scale content',
-  apply: 'Apply size',
-  fit: 'Fit',
-  fill: 'Fill',
-  center: 'Center',
-  rotateLeft: '-90°',
-  rotateRight: '+90°',
-  flipX: 'Flip X',
-  flipY: 'Flip Y',
-  angle: 'Straighten',
-  close: 'Close'
-};
-
-const MODE_OPTIONS = [
-  { id: 'keep', label: T.keep, description: 'Resize only' },
-  { id: 'center-content', label: T.centerContent, description: 'Move content' },
-  { id: 'scale-content', label: T.scaleContent, description: 'Best for presets' }
-];
-
+/**
+ * v1.3 Crop & Shape panel.
+ *
+ * Top half: canvas presets + resize mode selector (canvas-only / center / scale).
+ * Per spec: "Preset changes should only change canvas size by default and
+ * should not repeatedly scale existing content." — so applyPreset always calls
+ * applyResize(preset.width, preset.height, 'keep') regardless of the picker;
+ * the picker only affects custom width/height resizes.
+ *
+ * Bottom half: image tools acting on the active image — Fit / Fill / Center,
+ * rotate ±90, flip X/Y, straighten slider -45..45.
+ *
+ * Mobile-safe: full width on small screens, fixed 320px column on >= md.
+ */
 export default function CropResizePanel({ onClose }) {
-  const { canvas } = useEditor();
+  const { canvas, fitToScreen } = useEditor();
+  const setCanvasSize = useEditorStore((s) => s.setCanvasSize);
   const showToast = useEditorStore((s) => s.showToast);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectionVersion = useEditorStore((s) => s.selectionVersion);
 
-const selectedImage = useMemo(() => {
-  if (!canvas) return null;
-  const obj = canvas.getActiveObject();
-  return isImageObject(obj) ? obj : null;
-}, [canvas, selectedIds, selectionVersion]);
+  const [mode, setMode] = useState('keep');
+  const [customW, setCustomW] = useState(1080);
+  const [customH, setCustomH] = useState(1080);
 
-const [width, setWidth] = useState(() => canvas?.getWidth?.() || 1080);
-const [height, setHeight] = useState(() => canvas?.getHeight?.() || 1080);
-const [mode, setMode] = useState('scale-content');
-const [angle, setAngle] = useState(0);
-const [activePreset, setActivePreset] = useState(null);
+  const active = canvas ? canvas.getActiveObject() : null;
+  const image = isImageObject(active) ? active : null;
 
-useEffect(() => {
-  if (!selectedImage) {
-    setAngle(0);
-    return;
-  }
+  // Straighten slider mirrors the selected image's angle (clamped to -45..45).
+  const [straighten, setStraighten] = useState(0);
 
-  setAngle(Math.round(selectedImage.angle || 0));
-}, [selectedImage, selectionVersion]);
+  useEffect(() => {
+    if (!image) {
+      setStraighten(0);
+      return;
+    }
+    const a = image.angle || 0;
+    // Map angle (mod 360) to a -45..45 micro-tilt for the slider UI.
+    const norm = ((a + 180) % 360) - 180;
+    const clamped = Math.max(-45, Math.min(45, norm));
+    setStraighten(clamped);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds.join(','), selectionVersion, image && image.__uid]);
 
-  function applyResize(nextWidth = width, nextHeight = height, nextMode = mode) {
+  const currentW = canvas ? canvas.getWidth() : 0;
+  const currentH = canvas ? canvas.getHeight() : 0;
+
+  function applyResize(w, h, m = mode) {
     if (!canvas) return;
-
-    const w = Math.max(50, Math.round(Number(nextWidth) || 1080));
-    const h = Math.max(50, Math.round(Number(nextHeight) || 1080));
-
-    resizeCanvas(canvas, w, h, nextMode);
-    setWidth(w);
-    setHeight(h);
-
-    showToast?.({ type: 'success', message: 'Canvas resized.' });
+    resizeCanvas(canvas, w, h, m);
+    setCanvasSize({ width: canvas.getWidth(), height: canvas.getHeight() });
+    setTimeout(() => fitToScreen && fitToScreen(), 30);
   }
 
-  function applyPreset(preset) {
-  setActivePreset(preset.id);
-  setWidth(preset.width);
-  setHeight(preset.height);
-
-  // Presets should only change the canvas size.
-  // Do not scale existing content repeatedly, otherwise images keep shrinking
-  // when switching YouTube -> Story -> YouTube.
-  applyResize(preset.width, preset.height, 'keep');
-}
-
-  function withImage(fn, message) {
-    if (!canvas || !selectedImage) return;
-    fn();
-    showToast?.({ type: 'success', message });
+  function applyPreset(p) {
+    // Spec: presets only change canvas size; don't repeatedly scale content.
+    applyResize(p.width, p.height, 'keep');
+    showToast({ type: 'success', message: `Canvas set to ${p.label} (${p.width}×${p.height}).` });
   }
 
-  function onAngleChange(value) {
-    setAngle(value);
-    if (!canvas || !selectedImage) return;
-    setObjectAngle(canvas, selectedImage, value);
+  function applyCustom() {
+    const w = Math.max(50, Math.min(8000, Math.round(customW || 0)));
+    const h = Math.max(50, Math.min(8000, Math.round(customH || 0)));
+    if (!w || !h) return;
+    applyResize(w, h, mode);
+    showToast({ type: 'success', message: `Canvas set to ${w}×${h}.` });
   }
+
+  function onStraighten(v) {
+    setStraighten(v);
+    if (image && canvas) setObjectAngle(canvas, image, v);
+  }
+
+  const presetActive = (p) => p.width === currentW && p.height === currentH;
 
   return (
-    <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll">
-      <div className="sticky top-0 z-10 border-b border-surface-200 bg-surface-50/95 px-4 py-4 backdrop-blur dark:border-surface-800 dark:bg-surface-950/95">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-surface-950 dark:text-surface-50">
-              {T.title}
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-surface-500 dark:text-surface-400">
-              {T.subtitle}
-            </p>
-          </div>
+    <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll text-surface-900 dark:text-surface-50">
+      <PanelHeader title="Crop & Shape" subtitle={`Canvas ${currentW}×${currentH}`} onClose={onClose} />
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-2 py-1 text-xs text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800"
-          >
-            {T.close}
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-5 p-4">
-        <PanelSection title={T.format}>
+      <div className="p-3 space-y-4">
+        {/* Canvas presets */}
+        <Section title="Canvas presets">
           <div className="grid grid-cols-2 gap-2">
-            {CANVAS_PRESETS.map((preset) => (
-              <PresetCard
-                key={preset.id}
-                preset={preset}
-                active={activePreset === preset.id}
-                onClick={() => applyPreset(preset)}
-              />
+            {CANVAS_PRESETS.map((p) => (
+              <PresetCard key={p.id} preset={p} active={presetActive(p)} onClick={() => applyPreset(p)} />
             ))}
           </div>
-        </PanelSection>
+        </Section>
 
-        <PanelSection title={T.customSize}>
-          <div className="rounded-2xl border border-surface-200 bg-white p-3 dark:border-surface-800 dark:bg-surface-900">
+        {/* Custom size */}
+        <Section title="Custom size">
+          <div className="rounded-lg border border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-900 p-3 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <NumberField label={T.width} value={width} onChange={setWidth} />
-              <NumberField label={T.height} value={height} onChange={setHeight} />
+              <NumberInput label="Width" value={customW} onChange={setCustomW} />
+              <NumberInput label="Height" value={customH} onChange={setCustomH} />
             </div>
-
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1.5">Content mode</div>
+              <div className="space-y-1.5">
+                {RESIZE_MODES.map((rm) => (
+                  <label
+                    key={rm.id}
+                    className={`flex gap-2 items-start rounded-md border px-2 py-1.5 cursor-pointer ${
+                      mode === rm.id
+                        ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/40'
+                        : 'border-surface-200 bg-white hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:hover:border-blue-500 dark:hover:bg-blue-950/30'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="resize-mode"
+                      value={rm.id}
+                      checked={mode === rm.id}
+                      onChange={() => setMode(rm.id)}
+                      className="mt-0.5 accent-blue-500"
+                    />
+                    <span className="text-xs">
+                      <span className="font-medium text-surface-900 dark:text-surface-50 block">{rm.label}</span>
+                      <span className="text-surface-600 dark:text-surface-300 leading-snug">{rm.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
             <button
-              type="button"
-              onClick={() => applyResize()}
-              className="mt-3 w-full rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              onClick={applyCustom}
+              className="w-full rounded-md bg-blue-500 hover:bg-blue-600 text-white py-2 text-sm font-medium"
             >
-              {T.apply}
+              Apply size
             </button>
           </div>
-        </PanelSection>
+        </Section>
 
-        <PanelSection title={T.resizeMode}>
-          <div className="grid grid-cols-1 gap-2">
-            {MODE_OPTIONS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setMode(item.id)}
-                className={[
-                  'rounded-xl border px-3 py-2 text-left transition',
-                  mode === item.id
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-200'
-                    : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-100 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-200 dark:hover:bg-surface-800'
-                ].join(' ')}
-              >
-                <div className="text-sm font-semibold">{item.label}</div>
-                <div className="mt-0.5 text-[11px] opacity-70">{item.description}</div>
-              </button>
-            ))}
-          </div>
-        </PanelSection>
-
-        <PanelSection title={T.selectedImage}>
-          {!selectedImage ? (
-            <div className="rounded-2xl border border-dashed border-surface-300 bg-white p-4 text-sm leading-6 text-surface-500 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400">
-              {T.noImage}
+        {/* Image tools */}
+        <Section title="Selected image">
+          {!image ? (
+            <div className="rounded-lg border border-dashed border-surface-300 dark:border-surface-700 px-3 py-4 text-center text-xs text-surface-600 dark:text-surface-300">
+              Select an image on the canvas to fit, fill, rotate, flip, or straighten it.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <ToolButton label="Fit" icon="fit" onClick={() => { fitObjectToCanvas(canvas, image); }} />
+                <ToolButton label="Fill" icon="image" onClick={() => { fillObjectToCanvas(canvas, image); }} />
+                <ToolButton label="Center" icon="alignCenter" onClick={() => { centerObject(canvas, image); }} />
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                <ToolCard
-                  label={T.fit}
-                  icon="▣"
-                  description="Show full image"
-                  primary
-                  onClick={() => withImage(() => fitObjectToCanvas(canvas, selectedImage, 0), 'Image fitted.')}
-                />
-                <ToolCard
-                  label={T.fill}
-                  icon="▤"
-                  description="Cover canvas"
-                  primary
-                  onClick={() => withImage(() => fillObjectToCanvas(canvas, selectedImage), 'Image filled.')}
-                />
-                <ToolCard
-                  label={T.center}
-                  icon="◎"
-                  description="Move to center"
-                  onClick={() => withImage(() => centerObject(canvas, selectedImage), 'Image centered.')}
-                />
-                <ToolCard
-                  label={T.rotateRight}
-                  icon="↻"
-                  description="Rotate right"
-                  onClick={() => withImage(() => rotateObject(canvas, selectedImage, 90), 'Image rotated.')}
-                />
-                <ToolCard
-                  label={T.rotateLeft}
-                  icon="↺"
-                  description="Rotate left"
-                  onClick={() => withImage(() => rotateObject(canvas, selectedImage, -90), 'Image rotated.')}
-                />
-                <ToolCard
-                  label={T.flipX}
-                  icon="⇄"
-                  description="Mirror"
-                  onClick={() => withImage(() => flipObject(canvas, selectedImage, 'x'), 'Image flipped.')}
-                />
-                <ToolCard
-                  label={T.flipY}
-                  icon="⇅"
-                  description="Vertical"
-                  onClick={() => withImage(() => flipObject(canvas, selectedImage, 'y'), 'Image flipped.')}
-                />
+                <ToolButton label="Rotate -90°" icon="refresh" onClick={() => rotateObject(canvas, image, -90)} />
+                <ToolButton label="Rotate +90°" icon="refresh" onClick={() => rotateObject(canvas, image, 90)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <ToolButton label="Flip X" icon="arrow" onClick={() => flipObject(canvas, image, 'x')} />
+                <ToolButton label="Flip Y" icon="arrow" onClick={() => flipObject(canvas, image, 'y')} />
               </div>
 
-              <div className="rounded-2xl border border-surface-200 bg-white p-3 dark:border-surface-800 dark:bg-surface-900">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="text-sm font-semibold text-surface-800 dark:text-surface-100">
-                    {T.angle}
-                  </span>
-                  <span className="rounded-md bg-surface-100 px-2 py-0.5 text-xs tabular-nums text-surface-500 dark:bg-surface-800">
-                    {angle}°
-                  </span>
+              <div className="rounded-lg border border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-900 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-surface-700 dark:text-surface-200">Straighten</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs tabular-nums text-surface-600 dark:text-surface-300 w-12 text-right">{straighten.toFixed(0)}°</span>
+                    <button
+                      onClick={() => onStraighten(0)}
+                      className="text-[11px] text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200"
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
-
                 <input
                   type="range"
-                  min="-45"
-                  max="45"
-                  step="1"
-                  value={angle}
-                  onChange={(e) => onAngleChange(Number(e.target.value))}
-                  className="w-full accent-blue-600"
+                  min={-45}
+                  max={45}
+                  step={1}
+                  value={straighten}
+                  onChange={(e) => onStraighten(parseFloat(e.target.value))}
+                  className="w-full mt-1 accent-blue-500"
                 />
               </div>
             </div>
           )}
-        </PanelSection>
+        </Section>
+
+        <div className="h-2" />
       </div>
     </aside>
   );
 }
 
-function PanelSection({ title, children }) {
+function PanelHeader({ title, subtitle, onClose }) {
   return (
-    <section>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-        {title}
-      </h3>
-      {children}
-    </section>
+    <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-800 sticky top-0 bg-surface-50 dark:bg-surface-950 z-10">
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400">{title}</div>
+        {subtitle && <div className="text-xs text-surface-600 dark:text-surface-300 mt-0.5">{subtitle}</div>}
+      </div>
+      {onClose && (
+        <button className="btn-ghost h-7 w-7 p-0" onClick={onClose} aria-label="Close panel">
+          <Icon name="x" size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
-function NumberField({ label, value, onChange }) {
+function Section({ title, children }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">{title}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function PresetCard({ preset, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        active
+          ? 'rounded-lg border-2 px-3 py-2 text-left transition-colors border-blue-500 bg-blue-50 text-surface-900 dark:border-blue-400 dark:bg-blue-950/40 dark:text-surface-50'
+          : 'rounded-lg border px-3 py-2 text-left transition-colors border-surface-200 bg-white text-surface-900 hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-50 dark:hover:border-blue-500 dark:hover:bg-blue-950/30'
+      }
+    >
+      <div className="text-xs font-medium truncate">{preset.label}</div>
+      <div className="text-[11px] text-surface-600 dark:text-surface-300 mt-0.5">
+        {preset.width}×{preset.height} · {preset.hint}
+      </div>
+    </button>
+  );
+}
+
+function NumberInput({ label, value, onChange }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-surface-500 dark:text-surface-400">
-        {label}
-      </span>
+      <span className="text-[11px] font-medium uppercase tracking-wider text-surface-500 dark:text-surface-400">{label}</span>
       <input
         type="number"
-        min="50"
+        min={50}
+        max={8000}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none focus:border-blue-500 dark:border-surface-700 dark:bg-surface-950 dark:text-surface-50"
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        className="mt-1 w-full rounded-md border border-surface-200 bg-white text-surface-900 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-50 px-2 py-1.5 text-sm tabular-nums focus:outline-none focus:border-blue-500"
       />
     </label>
   );
 }
 
-function PresetCard({ preset, active, onClick }) {
-  const preview = getRatioPreview(preset.width, preset.height);
-
+function ToolButton({ label, icon, onClick }) {
   return (
     <button
-      type="button"
       onClick={onClick}
-      className={[
-        'rounded-2xl border p-3 text-left transition',
-        active
-          ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/40'
-          : 'border-surface-200 bg-white hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:hover:border-blue-500 dark:hover:bg-blue-950/30'
-      ].join(' ')}
+      className="rounded-md border border-surface-200 bg-white text-surface-900 hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-50 dark:hover:border-blue-500 dark:hover:bg-blue-950/30 px-2 py-2 text-xs font-medium flex items-center justify-center gap-1.5"
     >
-      <div className="mb-3 flex h-16 items-center justify-center rounded-xl bg-surface-100 dark:bg-surface-800">
-        <div
-          className="rounded-md border-2 border-blue-500 bg-white shadow-sm dark:bg-surface-950"
-          style={{
-            width: preview.width,
-            height: preview.height
-          }}
-        />
-      </div>
-
-      <div className="text-xs font-semibold leading-4 text-surface-900 dark:text-surface-50">
-        {preset.name}
-      </div>
-
-      <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-surface-500 dark:text-surface-400">
-        <span>{preset.ratio}</span>
-        <span>{preset.width}×{preset.height}</span>
-      </div>
+      <Icon name={icon} size={12} />
+      {label}
     </button>
   );
-}
-
-function ToolCard({ label, icon, description, onClick, primary = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'rounded-2xl border p-3 text-left transition',
-        primary
-          ? 'border-blue-500 bg-blue-600 text-white hover:bg-blue-700'
-          : 'border-surface-200 bg-white text-surface-800 hover:bg-surface-100 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-100 dark:hover:bg-surface-800'
-      ].join(' ')}
-    >
-      <div className="mb-2 text-2xl leading-none">{icon}</div>
-      <div className="text-sm font-semibold">{label}</div>
-      <div className={primary ? 'mt-0.5 text-[11px] text-blue-100' : 'mt-0.5 text-[11px] text-surface-500 dark:text-surface-400'}>
-        {description}
-      </div>
-    </button>
-  );
-}
-
-function getRatioPreview(width, height) {
-  const maxW = 64;
-  const maxH = 48;
-  const ratio = width / height;
-
-  if (ratio >= maxW / maxH) {
-    return {
-      width: maxW,
-      height: Math.max(18, Math.round(maxW / ratio))
-    };
-  }
-
-  return {
-    width: Math.max(18, Math.round(maxH * ratio)),
-    height: maxH
-  };
 }

@@ -83,33 +83,33 @@ export default function TopBar({ onOpenSizeModal }) {
   }
 
   return (
-    <header className="h-12 flex-shrink-0 flex items-center px-3 gap-2 border-b border-line bg-surface-1">
-      <div className="flex items-center gap-2 pr-3 border-r border-line">
+    <header className="h-12 flex-shrink-0 flex items-center px-2 md:px-3 gap-1 md:gap-2 border-b border-line bg-surface-1 overflow-x-auto thin-scroll">
+      <div className="flex items-center gap-2 pr-2 md:pr-3 border-r border-line shrink-0">
         <div className="h-7 w-7 rounded-md bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center text-white">
           <Icon name="image" size={16} strokeWidth={2} />
         </div>
-        <span className="text-sm font-semibold text-ink">{T.appName}</span>
+        <span className="hidden sm:inline text-sm font-semibold text-ink">{T.appName}</span>
       </div>
 
-      <button className="btn-ghost" onClick={onOpenSizeModal} aria-label={T.newCanvas}>
+      <button className="btn-ghost shrink-0" onClick={onOpenSizeModal} aria-label={T.newCanvas}>
         <Icon name="plus" size={16} />
-        <span>{T.newCanvas}</span>
+        <span className="hidden sm:inline">{T.newCanvas}</span>
       </button>
 
-      <button className="btn-ghost" onClick={handleOpen} aria-label={T.openProject}>
+      <button className="btn-ghost shrink-0" onClick={handleOpen} aria-label={T.openProject}>
         <Icon name="upload" size={16} />
-        <span>Open</span>
+        <span className="hidden sm:inline">Open</span>
       </button>
 
-      <button className="btn-ghost" onClick={handleSave} aria-label={T.saveProject}>
+      <button className="btn-ghost shrink-0" onClick={handleSave} aria-label={T.saveProject}>
         <Icon name="save" size={16} />
-        <span>Save</span>
+        <span className="hidden sm:inline">Save</span>
       </button>
 
-      <div className="w-px h-5 bg-line mx-1" />
+      <div className="hidden md:block w-px h-5 bg-line mx-1" />
 
       <button
-        className="btn-ghost"
+        className="btn-ghost shrink-0 hidden md:flex"
         onClick={() => history && history.undo()}
         disabled={!historyState.canUndo}
         aria-label={T.undo}
@@ -117,7 +117,7 @@ export default function TopBar({ onOpenSizeModal }) {
         <Icon name="undo" size={16} />
       </button>
       <button
-        className="btn-ghost"
+        className="btn-ghost shrink-0 hidden md:flex"
         onClick={() => history && history.redo()}
         disabled={!historyState.canRedo}
         aria-label={T.redo}
@@ -128,29 +128,31 @@ export default function TopBar({ onOpenSizeModal }) {
       <div className="flex-1" />
 
       {restoreVisible && (
-        <button className="btn-ghost" onClick={handleRestore}>
+        <button className="btn-ghost shrink-0 hidden md:flex" onClick={handleRestore}>
           <Icon name="refresh" size={16} />
           <span>{T.restoreLast}</span>
         </button>
       )}
 
-      <button className="btn-ghost" onClick={() => setConfirmClear(true)} aria-label={T.clear}>
+      <button className="btn-ghost shrink-0" onClick={() => setConfirmClear(true)} aria-label={T.clear}>
         <Icon name="trash" size={16} />
         <span className="hidden md:inline">Clear</span>
       </button>
 
-      <div className="w-px h-5 bg-line mx-1" />
+      <div className="hidden md:block w-px h-5 bg-line mx-1" />
 
-      <button className="btn-secondary" onClick={handleExportJpg}>
+      <button className="btn-secondary shrink-0 hidden md:flex" onClick={handleExportJpg}>
         <Icon name="download" size={16} />
         <span>JPG</span>
       </button>
-      <button className="btn-primary" onClick={handleExportPng}>
+      <button className="btn-primary shrink-0 hidden md:flex" onClick={handleExportPng}>
         <Icon name="download" size={16} />
         <span>PNG</span>
       </button>
 
-      <ThemeToggle />
+      <div className="hidden md:block">
+        <ThemeToggle />
+      </div>
 
       <input
         ref={fileRef}

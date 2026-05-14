@@ -8,7 +8,7 @@ import { useCanvasHistory } from '../hooks/useCanvasHistory.js';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts.js';
 import { deleteActive, duplicateActive } from '../editor/editorActions.js';
 
-const VIEWPORT_PADDING = 64;
+const VIEWPORT_PADDING = 24;
 
 /**
  * CanvasWorkspace owns the Fabric.js canvas instance, exposes it via
@@ -178,7 +178,7 @@ export default function CanvasWorkspace({ renderShell }) {
   const canvasStage = (
     <div
       ref={stageRef}
-      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-center justify-center p-3 md:p-8"
+      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-start md:items-center justify-center p-3 pt-8 md:p-8"
     >
       <div
         className="shadow-xl ring-1 ring-black/10 bg-white"

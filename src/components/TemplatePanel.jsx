@@ -18,7 +18,7 @@ export default function TemplatePanel({ onClose }) {
   }
 
   return (
-    <div className="w-full md:w-72 md:flex-shrink-0 border-r border-line bg-surface-1 flex flex-col min-h-0">
+    <div className="w-full md:w-72 md:flex-shrink-0 border-r border-line bg-surface-1 flex flex-col min-h-0 max-h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-line">
         <div>
           <div className="panel-heading">Templates</div>

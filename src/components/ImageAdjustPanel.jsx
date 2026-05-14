@@ -1,242 +1,204 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Icon from './Icon.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import {
   FILTER_DEFAULTS,
   FILTER_PRESETS,
+  isImageObject,
+  getImageFilterState,
   applyImageFilters,
   applyPreset,
-  getImageFilterState,
-  isImageObject,
   resetImageFilters
 } from '../editor/imageFilters.js';
 
-const T = {
-  title: 'Photo Adjustments',
-  subtitle: 'Select an image on the canvas to edit its visual style.',
-  noImage: 'Select an image to adjust brightness, contrast, saturation, blur, and filters.',
-  presets: 'Presets',
-  adjustments: 'Adjustments',
-  effects: 'Effects',
-  reset: 'Reset filters',
-  brightness: 'Brightness',
-  contrast: 'Contrast',
-  saturation: 'Saturation',
-  blur: 'Blur',
-  pixelate: 'Pixelate',
-  grayscale: 'Grayscale',
-  sepia: 'Sepia',
-  invert: 'Invert',
-  close: 'Close'
-};
-
+/**
+ * v1.2 Photo Adjustments panel.
+ *
+ * Works against the currently selected Fabric image object. The panel mirrors
+ * the object's `__filterState` so sliders stay accurate when the user
+ * switches between images.
+ *
+ * Mobile-safe: full width on small screens, fixed 320px column on >= md.
+ */
 export default function ImageAdjustPanel({ onClose }) {
   const { canvas } = useEditor();
+  // selectedIds / selectionVersion ensure this component re-renders whenever
+  // the user switches selections or mutates the selected object.
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectionVersion = useEditorStore((s) => s.selectionVersion);
-  const showToast = useEditorStore((s) => s.showToast);
 
-  const selectedImage = useMemo(() => {
-    if (!canvas) return null;
-    const obj = canvas.getActiveObject();
-    if (isImageObject(obj)) return obj;
-    return null;
-  }, [canvas, selectedIds, selectionVersion]);
+  const active = canvas ? canvas.getActiveObject() : null;
+  const image = isImageObject(active) ? active : null;
 
-  const [values, setValues] = useState(FILTER_DEFAULTS);
+  // Local mirror so sliders are responsive without re-rendering the whole
+  // canvas on every pixel of drag.
+  const [state, setState] = useState(image ? getImageFilterState(image) : { ...FILTER_DEFAULTS });
 
   useEffect(() => {
-    if (!selectedImage) {
-      setValues(FILTER_DEFAULTS);
-      return;
-    }
-    setValues(getImageFilterState(selectedImage));
-  }, [selectedImage, selectionVersion]);
+    setState(image ? getImageFilterState(image) : { ...FILTER_DEFAULTS });
+    // selectionVersion intentionally a dep so dragging the image refreshes us.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds.join(','), selectionVersion, image && image.__uid]);
 
-  function updateValue(key, value) {
-    if (!canvas || !selectedImage) return;
-
-    const next = {
-      ...values,
-      [key]: value
-    };
-
-    setValues(next);
-    applyImageFilters(canvas, selectedImage, next);
+  function commit(partial) {
+    if (!image || !canvas) return;
+    const next = applyImageFilters(canvas, image, partial);
+    setState(next);
   }
 
-  function handlePreset(presetId) {
-    if (!canvas || !selectedImage) return;
-
-    applyPreset(canvas, selectedImage, presetId);
-    setValues(getImageFilterState(selectedImage));
-    showToast?.({ type: 'success', message: 'Preset applied.' });
+  function onPreset(presetId) {
+    if (!image || !canvas) return;
+    const next = applyPreset(canvas, image, presetId);
+    setState(next);
   }
 
-  function handleReset() {
-    if (!canvas || !selectedImage) return;
-
-    resetImageFilters(canvas, selectedImage);
-    setValues(FILTER_DEFAULTS);
-    showToast?.({ type: 'success', message: 'Filters reset.' });
+  function onReset() {
+    if (!image || !canvas) return;
+    setState(resetImageFilters(canvas, image));
   }
 
   return (
-    <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll">
-      <div className="sticky top-0 z-10 border-b border-surface-200 bg-surface-50/95 px-4 py-4 backdrop-blur dark:border-surface-800 dark:bg-surface-950/95">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-surface-950 dark:text-surface-50">{T.title}</h2>
-            <p className="mt-1 text-xs leading-5 text-surface-500 dark:text-surface-400">{T.subtitle}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-2 py-1 text-xs text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800"
-          >
-            {T.close}
-          </button>
-        </div>
-      </div>
+    <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll text-surface-900 dark:text-surface-50">
+      <PanelHeader title="Photo Adjustments" subtitle="Filters and tone" onClose={onClose} />
 
-      {!selectedImage ? (
-        <div className="p-4">
-          <div className="rounded-2xl border border-dashed border-surface-300 bg-white p-4 text-sm leading-6 text-surface-500 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400">
-            {T.noImage}
-          </div>
-        </div>
+      {!image ? (
+        <EmptyState />
       ) : (
-        <div className="space-y-5 p-4">
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-              {T.presets}
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {FILTER_PRESETS.map((preset) => (
+        <div className="p-3 space-y-4">
+          {/* Presets */}
+          <Section title="Presets">
+            <div className="grid grid-cols-3 gap-2">
+              {FILTER_PRESETS.map((p) => (
                 <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handlePreset(preset.id)}
-                  className="rounded-xl border border-surface-200 bg-white p-3 text-left hover:border-blue-400 hover:bg-blue-50 dark:border-surface-800 dark:bg-surface-900 dark:hover:border-blue-500 dark:hover:bg-blue-950/40"
-                  title={preset.description}
+                  key={p.id}
+                  onClick={() => onPreset(p.id)}
+                  className="rounded-lg border border-surface-200 bg-white text-surface-900 hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-50 dark:hover:border-blue-500 dark:hover:bg-blue-950/30 px-2 py-2 text-xs font-medium transition-colors"
                 >
-                  <div className="text-sm font-semibold text-surface-900 dark:text-surface-50">{preset.name}</div>
-                  <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-surface-500 dark:text-surface-400">
-                    {preset.description}
-                  </div>
+                  {p.label}
                 </button>
               ))}
             </div>
-          </section>
+          </Section>
 
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-              {T.adjustments}
-            </h3>
+          {/* Sliders */}
+          <Section title="Tone">
+            <Slider label="Brightness" min={-100} max={100} value={state.brightness}
+              onChange={(v) => commit({ brightness: v })} onReset={() => commit({ brightness: 0 })} />
+            <Slider label="Contrast" min={-100} max={100} value={state.contrast}
+              onChange={(v) => commit({ contrast: v })} onReset={() => commit({ contrast: 0 })} />
+            <Slider label="Saturation" min={-100} max={100} value={state.saturation}
+              onChange={(v) => commit({ saturation: v })} onReset={() => commit({ saturation: 0 })} />
+          </Section>
 
-            <Slider
-              label={T.brightness}
-              value={values.brightness}
-              min={-1}
-              max={1}
-              step={0.01}
-              onChange={(v) => updateValue('brightness', v)}
-            />
+          <Section title="Effects">
+            <Slider label="Blur" min={0} max={100} value={state.blur}
+              onChange={(v) => commit({ blur: v })} onReset={() => commit({ blur: 0 })} />
+            <Slider label="Pixelate" min={0} max={100} value={state.pixelate}
+              onChange={(v) => commit({ pixelate: v })} onReset={() => commit({ pixelate: 0 })} />
+          </Section>
 
-            <Slider
-              label={T.contrast}
-              value={values.contrast}
-              min={-1}
-              max={1}
-              step={0.01}
-              onChange={(v) => updateValue('contrast', v)}
-            />
-
-            <Slider
-              label={T.saturation}
-              value={values.saturation}
-              min={-1}
-              max={1}
-              step={0.01}
-              onChange={(v) => updateValue('saturation', v)}
-            />
-
-            <Slider
-              label={T.blur}
-              value={values.blur}
-              min={0}
-              max={1}
-              step={0.01}
-              onChange={(v) => updateValue('blur', v)}
-            />
-
-            <Slider
-              label={T.pixelate}
-              value={values.pixelate}
-              min={0}
-              max={40}
-              step={1}
-              onChange={(v) => updateValue('pixelate', v)}
-            />
-          </section>
-
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-              {T.effects}
-            </h3>
-
-            <Toggle label={T.grayscale} checked={values.grayscale} onChange={(v) => updateValue('grayscale', v)} />
-            <Toggle label={T.sepia} checked={values.sepia} onChange={(v) => updateValue('sepia', v)} />
-            <Toggle label={T.invert} checked={values.invert} onChange={(v) => updateValue('invert', v)} />
-          </section>
+          <Section title="Toggles">
+            <div className="grid grid-cols-3 gap-2">
+              <Toggle label="Grayscale" active={state.grayscale} onClick={() => commit({ grayscale: !state.grayscale })} />
+              <Toggle label="Sepia" active={state.sepia} onClick={() => commit({ sepia: !state.sepia })} />
+              <Toggle label="Invert" active={state.invert} onClick={() => commit({ invert: !state.invert })} />
+            </div>
+          </Section>
 
           <button
-            type="button"
-            onClick={handleReset}
-            className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm font-medium text-surface-700 hover:bg-surface-100 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-200 dark:hover:bg-surface-800"
+            onClick={onReset}
+            className="w-full rounded-lg border border-surface-200 bg-white text-surface-900 hover:bg-surface-100 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-50 dark:hover:bg-surface-800 py-2 text-sm font-medium flex items-center justify-center gap-1.5"
           >
-            {T.reset}
+            <Icon name="refresh" size={14} />
+            Reset filters
           </button>
+
+          <div className="h-2" />
         </div>
       )}
     </aside>
   );
 }
 
-function Slider({ label, value, min, max, step, onChange }) {
-  const displayValue = typeof value === 'number' ? value : 0;
-
+function PanelHeader({ title, subtitle, onClose }) {
   return (
-    <label className="mb-4 block">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-surface-700 dark:text-surface-200">{label}</span>
-        <span className="rounded-md bg-surface-100 px-2 py-0.5 text-xs tabular-nums text-surface-500 dark:bg-surface-800 dark:text-surface-300">
-          {displayValue.toFixed(step >= 1 ? 0 : 2)}
-        </span>
+    <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-800 sticky top-0 bg-surface-50 dark:bg-surface-950 z-10">
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400">{title}</div>
+        {subtitle && <div className="text-xs text-surface-600 dark:text-surface-300 mt-0.5">{subtitle}</div>}
+      </div>
+      {onClose && (
+        <button className="btn-ghost h-7 w-7 p-0" onClick={onClose} aria-label="Close panel">
+          <Icon name="x" size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="p-6 text-center">
+      <div className="mx-auto h-12 w-12 rounded-full bg-surface-200 dark:bg-surface-800 flex items-center justify-center text-surface-500 dark:text-surface-400 mb-3">
+        <Icon name="image" size={20} />
+      </div>
+      <p className="text-sm text-surface-700 dark:text-surface-200 font-medium">No image selected</p>
+      <p className="mt-1 text-xs text-surface-600 dark:text-surface-300 leading-relaxed">
+        Select an image on the canvas to adjust brightness, contrast, and effects.
+      </p>
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">{title}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function Slider({ label, min, max, value, onChange, onReset }) {
+  return (
+    <div className="rounded-lg border border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-900 px-3 py-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-surface-700 dark:text-surface-200">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs tabular-nums text-surface-600 dark:text-surface-300 w-9 text-right">{value}</span>
+          <button
+            onClick={onReset}
+            className="text-[11px] text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200"
+            aria-label={`Reset ${label}`}
+          >
+            Reset
+          </button>
+        </div>
       </div>
       <input
         type="range"
         min={min}
         max={max}
-        step={step}
-        value={displayValue}
-        onChange={(e) => onChange(step >= 1 ? Number(e.target.value) : parseFloat(e.target.value))}
-        className="w-full accent-blue-600"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full mt-1 accent-blue-500"
       />
-    </label>
+    </div>
   );
 }
 
-function Toggle({ label, checked, onChange }) {
+function Toggle({ label, active, onClick }) {
   return (
-    <label className="mb-3 flex cursor-pointer items-center justify-between rounded-xl border border-surface-200 bg-white px-3 py-2 dark:border-surface-800 dark:bg-surface-900">
-      <span className="text-sm font-medium text-surface-700 dark:text-surface-200">{label}</span>
-      <input
-        type="checkbox"
-        checked={!!checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 accent-blue-600"
-      />
-    </label>
+    <button
+      onClick={onClick}
+      className={
+        active
+          ? 'rounded-lg border-2 border-blue-500 bg-blue-50 text-surface-900 dark:bg-blue-950/40 dark:text-surface-50 px-2 py-2 text-xs font-medium'
+          : 'rounded-lg border border-surface-200 bg-white text-surface-900 hover:border-blue-300 hover:bg-blue-50/70 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-50 dark:hover:border-blue-500 dark:hover:bg-blue-950/30 px-2 py-2 text-xs font-medium'
+      }
+    >
+      {label}
+    </button>
   );
 }

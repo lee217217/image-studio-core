@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useIsMobile } from './hooks/useIsMobile.js';
 import { useEditorStore } from './store/editorStore.js';
 
 import CanvasWorkspace from './components/CanvasWorkspace.jsx';
@@ -7,16 +8,48 @@ import LeftToolbar from './components/LeftToolbar.jsx';
 import RightPropertiesPanel from './components/RightPropertiesPanel.jsx';
 import LayersPanel from './components/LayersPanel.jsx';
 import TemplatePanel from './components/TemplatePanel.jsx';
+import AiPanel from './components/AiPanel.jsx';
 import ImageAdjustPanel from './components/ImageAdjustPanel.jsx';
 import CropResizePanel from './components/CropResizePanel.jsx';
-import AiPanel from './components/AiPanel.jsx';
+import LayerStylePanel from './components/LayerStylePanel.jsx';
 import SizePresetModal from './components/SizePresetModal.jsx';
 import ExportPanel from './components/ExportPanel.jsx';
 import Toast from './components/Toast.jsx';
 
+/**
+ * App is the high-level layout shell with two complete layouts:
+ *
+ *   Desktop (>= md, `hidden md:flex`):
+ *   ┌───────────────────────────────────────────────────────┐
+ *   │ TopBar                                                │
+ *   ├──┬───────────────┬─────────────────────┬──────────────┤
+ *   │L │ Panel (left)  │ Canvas              │ Properties   │
+ *   │  │ templates /   │                     │ (right)      │
+ *   │  │ crop /        ├─────────────────────┤              │
+ *   │  │ adjust /      │ Layers (optional)   │              │
+ *   │  │ style / ai    │ ExportPanel         │              │
+ *   └──┴───────────────┴─────────────────────┴──────────────┘
+ *
+ *   Mobile (< md, `md:hidden`):
+ *   ┌──────────────────────────────────┐
+ *   │ TopBar (compact)                 │
+ *   ├──────────────────────────────────┤
+ *   │ Canvas (flex-1)                  │
+ *   │                                  │
+ *   │   active panel mounts as a       │
+ *   │   bottom sheet above this        │
+ *   ├──────────────────────────────────┤
+ *   │ Bottom toolbar (LeftToolbar mob) │
+ *   └──────────────────────────────────┘
+ *
+ * RightPropertiesPanel is desktop-only per spec.
+ */
 export default function App() {
   const [sizeModalOpen, setSizeModalOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState(null);
+  const isMobile = useIsMobile(768); // matches Tailwind `md` breakpoint
+  // Default panel differs by layout — Layers feels natural on desktop, but
+  // mobile starts with no sheet open so the canvas is the hero.
+  const [activePanel, setActivePanel] = useState(isMobile ? null : 'layers');
   const theme = useEditorStore((s) => s.theme);
 
   useEffect(() => {
@@ -25,72 +58,94 @@ export default function App() {
     else root.classList.remove('dark');
   }, [theme]);
 
-  const renderPanel = () => {
-    if (activePanel === 'templates') return <TemplatePanel onClose={() => setActivePanel(null)} />;
-    if (activePanel === 'crop') return <CropResizePanel onClose={() => setActivePanel(null)} />;
-    if (activePanel === 'adjust') return <ImageAdjustPanel onClose={() => setActivePanel(null)} />;
-    if (activePanel === 'layers') return <LayersPanel onClose={() => setActivePanel(null)} />;
-    if (activePanel === 'ai') return <AiPanel onClose={() => setActivePanel(null)} />;
-    return null;
-  };
-
   return (
     <CanvasWorkspace
       renderShell={(canvasStage) => (
-        <div className="h-full w-full flex flex-col bg-surface-0 overflow-hidden">
+        <div className="h-full w-full flex flex-col bg-surface-0">
           <TopBar onOpenSizeModal={() => setSizeModalOpen(true)} />
 
-          <div className="relative flex-1 min-h-0 overflow-hidden">
-            <div className="hidden md:flex h-full min-h-0">
-              <LeftToolbar activePanel={activePanel} onActivatePanel={setActivePanel} />
+          {!isMobile ? (
+          /* ===== Desktop layout ===== */
+          <div className="flex flex-1 min-h-0">
+            <LeftToolbar
+              activePanel={activePanel}
+              onActivatePanel={setActivePanel}
+            />
+            {activePanel !== 'layers' && renderSidePanel(activePanel, () => setActivePanel(null))}
 
-              {activePanel !== 'layers' && renderPanel()}
+            <main className="flex-1 flex flex-col min-w-0 min-h-0">
+              {canvasStage}
+              {activePanel === 'layers' && (
+                <LayersPanel onClose={() => setActivePanel(null)} />
+              )}
+              <ExportPanel />
+            </main>
 
-              <main className="flex-1 flex flex-col min-w-0 min-h-0">
-                {canvasStage}
+            <RightPropertiesPanel />
+          </div>
+          ) : (
+          /* ===== Mobile layout ===== */
+          <div className="flex flex-1 min-h-0 flex-col relative">
+            <main className="flex-1 flex flex-col min-w-0 min-h-0 pb-16">
+              {canvasStage}
+            </main>
 
-                {activePanel === 'layers' && (
-                  <LayersPanel onClose={() => setActivePanel(null)} />
-                )}
-
-                <ExportPanel />
-              </main>
-
-              <RightPropertiesPanel />
-            </div>
-
-            <div className="md:hidden h-full min-h-0 flex flex-col">
-              <main className="relative flex-1 min-h-0 pb-16">
-                {canvasStage}
-              </main>
-
-              {activePanel && (
-  <div className="fixed left-0 right-0 bottom-16 z-40 w-screen max-h-[68vh] overflow-hidden rounded-t-3xl border-t border-surface-200 bg-surface-50 shadow-2xl dark:border-surface-800 dark:bg-surface-950">
-    <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-surface-300 dark:bg-surface-700" />
-    <div className="max-h-[65vh] w-full overflow-y-auto">
-      {renderPanel()}
-    </div>
-  </div>
-)}
-
-              <div className="fixed inset-x-0 bottom-0 z-50">
-                <LeftToolbar
-                  activePanel={activePanel}
-                  onActivatePanel={setActivePanel}
-                  mobile
+            {/* Bottom sheet — slides up above the fixed toolbar */}
+            {activePanel && (
+              <>
+                <div
+                  className="fixed left-0 right-0 top-0 bottom-16 z-30 bg-black/30"
+                  onClick={() => setActivePanel(null)}
+                  aria-hidden="true"
                 />
-              </div>
+                <div
+                  className="fixed left-0 right-0 bottom-16 z-40 w-screen max-h-[72vh] rounded-t-3xl bg-surface-50 dark:bg-surface-950 overflow-hidden shadow-2xl border-t border-surface-200 dark:border-surface-800"
+                  role="dialog"
+                  aria-label="Tool panel"
+                >
+                  <div className="flex justify-center pt-2 pb-1">
+                    <span className="h-1.5 w-10 rounded-full bg-surface-300 dark:bg-surface-700" />
+                  </div>
+                  <div className="max-h-[69vh] w-full overflow-y-auto bg-surface-50 dark:bg-surface-950">
+                    {renderSidePanel(activePanel, () => setActivePanel(null))}
+                    <div className="h-24" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Fixed bottom toolbar */}
+            <div className="fixed left-0 right-0 bottom-0 z-50">
+              <LeftToolbar
+                mobile
+                activePanel={activePanel}
+                onActivatePanel={setActivePanel}
+              />
             </div>
           </div>
+          )}
 
-          <SizePresetModal
-            open={sizeModalOpen}
-            onClose={() => setSizeModalOpen(false)}
-          />
-
+          <SizePresetModal open={sizeModalOpen} onClose={() => setSizeModalOpen(false)} />
           <Toast />
         </div>
       )}
     />
   );
+}
+
+/**
+ * Map the activePanel value to the matching panel component. `layers` is
+ * special — on desktop it lives under the canvas, but on mobile it also opens
+ * as a bottom sheet via this renderer.
+ */
+function renderSidePanel(activePanel, onClose) {
+  switch (activePanel) {
+    case 'templates': return <TemplatePanel onClose={onClose} />;
+    case 'crop':      return <CropResizePanel onClose={onClose} />;
+    case 'adjust':    return <ImageAdjustPanel onClose={onClose} />;
+    case 'style':     return <LayerStylePanel onClose={onClose} />;
+    case 'layers':    return <LayersPanel onClose={onClose} />;
+    case 'ai':        return <AiPanel onClose={onClose} />;
+    default:          return null;
+  }
 }
