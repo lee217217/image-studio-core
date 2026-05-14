@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useIsMobile } from './hooks/useIsMobile.js';
+import { useIsMobile } from './mobile/useIsMobile.js';
 import { useEditorStore } from './store/editorStore.js';
 
 import CanvasWorkspace from './components/CanvasWorkspace.jsx';
@@ -16,10 +16,14 @@ import SizePresetModal from './components/SizePresetModal.jsx';
 import ExportPanel from './components/ExportPanel.jsx';
 import Toast from './components/Toast.jsx';
 
+import MobileApp from './mobile/MobileApp.jsx';
+
 /**
- * App is the high-level layout shell with two complete layouts:
+ * App is the high-level shell. It picks one of two complete layouts based
+ * on `useIsMobile()` and mounts a single CanvasWorkspace either way so the
+ * Fabric instance is the single source of truth.
  *
- *   Desktop (>= md, `hidden md:flex`):
+ *   Desktop (>= md viewport AND fine pointer):
  *   ┌───────────────────────────────────────────────────────┐
  *   │ TopBar                                                │
  *   ├──┬───────────────┬─────────────────────┬──────────────┤
@@ -30,26 +34,16 @@ import Toast from './components/Toast.jsx';
  *   │  │ style / ai    │ ExportPanel         │              │
  *   └──┴───────────────┴─────────────────────┴──────────────┘
  *
- *   Mobile (< md, `md:hidden`):
- *   ┌──────────────────────────────────┐
- *   │ TopBar (compact)                 │
- *   ├──────────────────────────────────┤
- *   │ Canvas (flex-1)                  │
- *   │                                  │
- *   │   active panel mounts as a       │
- *   │   bottom sheet above this        │
- *   ├──────────────────────────────────┤
- *   │ Bottom toolbar (LeftToolbar mob) │
- *   └──────────────────────────────────┘
+ *   Mobile (< md viewport OR coarse pointer):
+ *     Dedicated MobileApp shell — see src/mobile/MobileApp.jsx.
  *
- * RightPropertiesPanel is desktop-only per spec.
+ * RightPropertiesPanel is desktop-only per spec; on mobile its properties
+ * live inside the Style / Adjust / Crop sheets.
  */
 export default function App() {
   const [sizeModalOpen, setSizeModalOpen] = useState(false);
-  const isMobile = useIsMobile(768); // matches Tailwind `md` breakpoint
-  // Default panel differs by layout — Layers feels natural on desktop, but
-  // mobile starts with no sheet open so the canvas is the hero.
-  const [activePanel, setActivePanel] = useState(isMobile ? null : 'layers');
+  const isMobile = useIsMobile();
+  const [activePanel, setActivePanel] = useState('layers');
   const theme = useEditorStore((s) => s.theme);
 
   useEffect(() => {
@@ -58,85 +52,58 @@ export default function App() {
     else root.classList.remove('dark');
   }, [theme]);
 
+  // Mobile gets tighter fit-to-screen padding so the canvas fills more of
+  // the screen without empty margins.
+  const viewportPadding = isMobile ? 16 : 24;
+
   return (
     <CanvasWorkspace
-      renderShell={(canvasStage) => (
-        <div className="h-full w-full flex flex-col bg-surface-0">
-          <TopBar onOpenSizeModal={() => setSizeModalOpen(true)} />
-
-          {!isMobile ? (
-          /* ===== Desktop layout ===== */
-          <div className="flex flex-1 min-h-0">
-            <LeftToolbar
-              activePanel={activePanel}
-              onActivatePanel={setActivePanel}
+      viewportPadding={viewportPadding}
+      renderShell={(canvasStage) =>
+        isMobile ? (
+          /* ===== Mobile shell ===== */
+          <>
+            <MobileApp
+              canvasStage={canvasStage}
+              onOpenNewCanvas={() => setSizeModalOpen(true)}
             />
-            {activePanel !== 'layers' && renderSidePanel(activePanel, () => setActivePanel(null))}
+            <SizePresetModal open={sizeModalOpen} onClose={() => setSizeModalOpen(false)} />
+            <Toast />
+          </>
+        ) : (
+          /* ===== Desktop shell (unchanged) ===== */
+          <div className="h-full w-full flex flex-col bg-surface-0">
+            <TopBar onOpenSizeModal={() => setSizeModalOpen(true)} />
 
-            <main className="flex-1 flex flex-col min-w-0 min-h-0">
-              {canvasStage}
-              {activePanel === 'layers' && (
-                <LayersPanel onClose={() => setActivePanel(null)} />
-              )}
-              <ExportPanel />
-            </main>
-
-            <RightPropertiesPanel />
-          </div>
-          ) : (
-          /* ===== Mobile layout ===== */
-          <div className="flex flex-1 min-h-0 flex-col relative">
-            <main className="flex-1 flex flex-col min-w-0 min-h-0 pb-16">
-              {canvasStage}
-            </main>
-
-            {/* Bottom sheet — slides up above the fixed toolbar */}
-            {activePanel && (
-              <>
-                <div
-                  className="fixed left-0 right-0 top-0 bottom-16 z-30 bg-black/30"
-                  onClick={() => setActivePanel(null)}
-                  aria-hidden="true"
-                />
-                <div
-                  className="fixed left-0 right-0 bottom-16 z-40 w-screen max-h-[72vh] rounded-t-3xl bg-surface-50 dark:bg-surface-950 overflow-hidden shadow-2xl border-t border-surface-200 dark:border-surface-800"
-                  role="dialog"
-                  aria-label="Tool panel"
-                >
-                  <div className="flex justify-center pt-2 pb-1">
-                    <span className="h-1.5 w-10 rounded-full bg-surface-300 dark:bg-surface-700" />
-                  </div>
-                  <div className="max-h-[69vh] w-full overflow-y-auto bg-surface-50 dark:bg-surface-950">
-                    {renderSidePanel(activePanel, () => setActivePanel(null))}
-                    <div className="h-24" />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Fixed bottom toolbar */}
-            <div className="fixed left-0 right-0 bottom-0 z-50">
+            <div className="flex flex-1 min-h-0">
               <LeftToolbar
-                mobile
                 activePanel={activePanel}
                 onActivatePanel={setActivePanel}
               />
-            </div>
-          </div>
-          )}
+              {activePanel !== 'layers' && renderSidePanel(activePanel, () => setActivePanel(null))}
 
-          <SizePresetModal open={sizeModalOpen} onClose={() => setSizeModalOpen(false)} />
-          <Toast />
-        </div>
-      )}
+              <main className="flex-1 flex flex-col min-w-0 min-h-0">
+                {canvasStage}
+                {activePanel === 'layers' && (
+                  <LayersPanel onClose={() => setActivePanel(null)} />
+                )}
+                <ExportPanel />
+              </main>
+
+              <RightPropertiesPanel />
+            </div>
+
+            <SizePresetModal open={sizeModalOpen} onClose={() => setSizeModalOpen(false)} />
+            <Toast />
+          </div>
+        )
+      }
     />
   );
 }
 
 /**
- * Map the activePanel value to the matching panel component. `layers` is
- * special — on desktop it lives under the canvas, but on mobile it also opens
- * as a bottom sheet via this renderer.
+ * Desktop side-panel mapper. Mobile renders its own sheet wrappers.
  */
 function renderSidePanel(activePanel, onClose) {
   switch (activePanel) {

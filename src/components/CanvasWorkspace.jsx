@@ -8,7 +8,7 @@ import { useCanvasHistory } from '../hooks/useCanvasHistory.js';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts.js';
 import { deleteActive, duplicateActive } from '../editor/editorActions.js';
 
-const VIEWPORT_PADDING = 24;
+const DEFAULT_VIEWPORT_PADDING = 24;
 
 /**
  * CanvasWorkspace owns the Fabric.js canvas instance, exposes it via
@@ -16,7 +16,7 @@ const VIEWPORT_PADDING = 24;
  * (TopBar, LeftToolbar, RightPropertiesPanel, etc.) are rendered as
  * children so they have access to the same canvas instance.
  */
-export default function CanvasWorkspace({ renderShell }) {
+export default function CanvasWorkspace({ renderShell, viewportPadding = DEFAULT_VIEWPORT_PADDING }) {
   const canvasElRef = useRef(null);
   const stageRef = useRef(null);
   const canvasRef = useRef(null);
@@ -116,17 +116,20 @@ export default function CanvasWorkspace({ renderShell }) {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
-    const stageW = stage.clientWidth - VIEWPORT_PADDING * 2;
-    const stageH = stage.clientHeight - VIEWPORT_PADDING * 2;
+    const stageW = stage.clientWidth - viewportPadding * 2;
+    const stageH = stage.clientHeight - viewportPadding * 2;
     const cw = canvas.getWidth();
     const ch = canvas.getHeight();
     const z = Math.min(stageW / cw, stageH / ch, 1);
     const clamped = Math.max(z, 0.05);
     setVisualZoom(clamped);
     setZoom(clamped);
-  }, [setZoom]);
+  }, [setZoom, viewportPadding]);
 
   useEffect(() => { fitToScreenRef.current = fitToScreen; }, [fitToScreen]);
+
+  // Re-fit when viewportPadding changes (e.g. switching mobile <-> desktop).
+  useEffect(() => { if (ready) fitToScreen(); }, [viewportPadding, ready, fitToScreen]);
 
   useEffect(() => {
     if (!stageRef.current) return;
@@ -175,20 +178,43 @@ export default function CanvasWorkspace({ renderShell }) {
     zoomOut
   };
 
+  // Wrap the canvas in a box sized to the scaled visual dimensions so the
+  // surrounding flex container can lay it out as a normal-sized element.
+  // Without this, the inner inline-block keeps its un-scaled width/height
+  // (e.g. 1080×1080) and `items-start` pushes the visually-small canvas
+  // far below the visible area, leaving the user staring at empty space.
+  const fabricCanvas = canvasRef.current;
+  const logicalW = fabricCanvas ? fabricCanvas.getWidth() : canvasSize.width;
+  const logicalH = fabricCanvas ? fabricCanvas.getHeight() : canvasSize.height;
+  const scaledW = logicalW * visualZoom;
+  const scaledH = logicalH * visualZoom;
+
   const canvasStage = (
     <div
       ref={stageRef}
-      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-start md:items-center justify-center p-3 pt-8 md:p-8"
+      className="canvas-shell flex-1 min-h-0 overflow-auto thin-scroll flex items-start md:items-center justify-center p-3 pt-4 md:p-8"
     >
       <div
-        className="shadow-xl ring-1 ring-black/10 bg-white"
         style={{
-          display: 'inline-block',
-          transform: `scale(${visualZoom})`,
-          transformOrigin: 'center center'
+          width: scaledW || undefined,
+          height: scaledH || undefined,
+          position: 'relative'
         }}
       >
-        <canvas ref={canvasElRef} />
+        <div
+          className="shadow-xl ring-1 ring-black/10 bg-white"
+          style={{
+            width: logicalW || undefined,
+            height: logicalH || undefined,
+            transform: `scale(${visualZoom})`,
+            transformOrigin: 'top left',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}
+        >
+          <canvas ref={canvasElRef} />
+        </div>
       </div>
     </div>
   );
