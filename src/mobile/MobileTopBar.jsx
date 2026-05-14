@@ -11,7 +11,7 @@ import { useEditorStore } from '../store/editorStore.js';
  * Intentionally minimal — no app name, no toolbar. Heavy actions live in
  * the dock and the MoreSheet to keep the canvas as the visual hero.
  */
-export default function MobileTopBar({ onOpenMore }) {
+export default function MobileTopBar({ onOpenMore, onOpenExport }) {
   const canvasSize = useEditorStore((s) => s.canvasSize);
   return (
     <header className="h-11 px-3 flex items-center justify-between border-b border-line bg-surface-1 select-none flex-shrink-0">
@@ -23,13 +23,24 @@ export default function MobileTopBar({ onOpenMore }) {
         {Math.round(canvasSize.width)} × {Math.round(canvasSize.height)}
       </div>
 
-      <button
-        className="btn-ghost h-8 w-8 p-0"
-        onClick={onOpenMore}
-        aria-label="More options"
-      >
-        <MoreDotsIcon />
-      </button>
+      <div className="flex items-center gap-1">
+        {onOpenExport && (
+          <button
+            className="btn-ghost h-8 w-8 p-0"
+            onClick={onOpenExport}
+            aria-label="Export"
+          >
+            <Icon name="download" size={16} />
+          </button>
+        )}
+        <button
+          className="btn-ghost h-8 w-8 p-0"
+          onClick={onOpenMore}
+          aria-label="More options"
+        >
+          <MoreDotsIcon />
+        </button>
+      </div>
     </header>
   );
 }

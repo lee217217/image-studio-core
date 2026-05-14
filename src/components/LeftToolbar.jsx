@@ -60,6 +60,8 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
     { key: 'crop',      name: 'Crop & shape', icon: 'fit' },
     { key: 'adjust',    name: 'Photo adjust', icon: 'image' },
     { key: 'style',     name: 'Style & effects', icon: 'sparkle' },
+    { key: 'stickers',  name: 'Stickers', icon: 'heart' },
+    { key: 'frames',    name: 'Frames', icon: 'frame' },
     { key: 'layers',    name: 'Layers', icon: 'layers' },
     { key: 'ai',        name: 'AI tools', icon: 'sparkle' }
   ];

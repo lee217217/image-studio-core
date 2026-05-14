@@ -17,12 +17,18 @@ export const FILTER_DEFAULTS = {
   brightness: 0,   // -100 .. 100
   contrast: 0,     // -100 .. 100
   saturation: 0,   // -100 .. 100
+  vibrance: 0,     // -100 .. 100 (mapped to fabric vibrance -1..1)
+  hue: 0,          // -180 .. 180 (mapped to HueRotation rotation in radians)
+  gamma: 1,        // 0.2 .. 2.2 (per-channel gamma)
   blur: 0,         // 0 .. 100
   pixelate: 0,     // 0 .. 100 (mapped to a fabric blocksize 2..40)
+  noise: 0,        // 0 .. 100
   // Toggles
   grayscale: false,
   sepia: false,
-  invert: false
+  invert: false,
+  // Film-look ColorMatrix (20-length 4x5). Null when not applied.
+  colorMatrix: null
 };
 
 export const FILTER_PRESETS = [
@@ -115,10 +121,31 @@ function buildFiltersFromState(state) {
     push(F.Pixelate, { blocksize });
   }
 
+  if (state.vibrance) {
+    push(F.Vibrance, { vibrance: clamp(state.vibrance / 100, -1, 1) });
+  }
+  if (state.hue) {
+    // Fabric HueRotation expects radians via 'rotation'
+    const radians = (state.hue * Math.PI) / 180;
+    push(F.HueRotation, { rotation: radians });
+  }
+  if (state.gamma && state.gamma !== 1) {
+    const g = clamp(state.gamma, 0.01, 2.2);
+    push(F.Gamma, { gamma: [g, g, g] });
+  }
+  if (state.noise) {
+    push(F.Noise, { noise: clamp(state.noise, 0, 100) });
+  }
+
   // Toggles
   if (state.grayscale) push(F.Grayscale, {});
   if (state.sepia)     push(F.Sepia, {});
   if (state.invert)    push(F.Invert, {});
+
+  // Film looks — additive ColorMatrix
+  if (state.colorMatrix && Array.isArray(state.colorMatrix) && state.colorMatrix.length === 20) {
+    push(F.ColorMatrix, { matrix: state.colorMatrix });
+  }
 
   return list;
 }

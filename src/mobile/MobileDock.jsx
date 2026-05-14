@@ -3,20 +3,21 @@ import Icon from '../components/Icon.jsx';
 /**
  * 6-slot bottom dock for the mobile shell.
  *
- *   ┌────────────────────────────────────────────────────┐
- *   │  Add   Adjust   Crop   Style   Layers   Export    │
- *   └────────────────────────────────────────────────────┘
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │  Add  Adjust  Stickers  Crop  Style  Layers          │
+ *   └──────────────────────────────────────────────────────┘
  *
- * Pinned to the very bottom with safe-area padding so it sits above the
- * home-indicator on iOS. Only 6 items max to keep tap targets large.
+ * Export and More moved to the top bar's right-side menu in v1.4 to make
+ * room for Stickers on the dock. Frames live in the More menu / left toolbar
+ * on desktop. Only 6 items max to keep tap targets large.
  */
 const DOCK_ITEMS = [
-  { id: 'add',    label: 'Add',    icon: 'plus' },
-  { id: 'adjust', label: 'Adjust', icon: 'sparkle' },
-  { id: 'crop',   label: 'Crop',   icon: 'square' },
-  { id: 'style',  label: 'Style',  icon: 'sparkle' },
-  { id: 'layers', label: 'Layers', icon: 'layers' },
-  { id: 'export', label: 'Export', icon: 'download' }
+  { id: 'add',      label: 'Add',      icon: 'plus' },
+  { id: 'adjust',   label: 'Adjust',   icon: 'image' },
+  { id: 'stickers', label: 'Stickers', icon: 'heart' },
+  { id: 'crop',     label: 'Crop',     icon: 'square' },
+  { id: 'style',    label: 'Style',    icon: 'sparkle' },
+  { id: 'layers',   label: 'Layers',   icon: 'layers' }
 ];
 
 export default function MobileDock({ active, onOpen }) {

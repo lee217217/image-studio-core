@@ -44,7 +44,9 @@ const paths = {
   x: 'M6 6l12 12 M18 6l-12 12',
   chevronDown: 'M6 9l6 6 6-6',
   chevronUp: 'M6 15l6-6 6 6',
-  refresh: 'M3 12a9 9 0 0115-6.7L21 8 M21 3v5h-5 M21 12a9 9 0 01-15 6.7L3 16 M3 21v-5h5'
+  refresh: 'M3 12a9 9 0 0115-6.7L21 8 M21 3v5h-5 M21 12a9 9 0 01-15 6.7L3 16 M3 21v-5h5',
+  heart: 'M12 21s-7-4.5-9.5-9.2C.7 7.6 4.1 4 8 4c2 0 3.4 1 4 2.2C12.6 5 14 4 16 4c3.9 0 7.3 3.6 5.5 7.8C19 16.5 12 21 12 21z',
+  frame: 'M3 3h18v18H3z M7 7h10v10H7z'
 };
 
 function splitPaths(d) {

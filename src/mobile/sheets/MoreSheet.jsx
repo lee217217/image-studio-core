@@ -16,7 +16,7 @@ import { clearCanvas } from '../../editor/editorActions.js';
  * one-tap toggle row rather than the desktop sun/moon button so the user
  * can see the current state at a glance.
  */
-export default function MoreSheet({ onClose, onOpenNewCanvas }) {
+export default function MoreSheet({ onClose, onOpenNewCanvas, onOpenFrames }) {
   const { canvas, history } = useEditor();
   const theme = useEditorStore((s) => s.theme);
   const toggleTheme = useEditorStore((s) => s.toggleTheme);
@@ -63,6 +63,7 @@ export default function MoreSheet({ onClose, onOpenNewCanvas }) {
       <Row icon="redo"    label="Redo"    disabled={!historyState.canRedo} onClick={handleRedo} />
       <Divider />
       <Row icon="plus"    label="New canvas…"     onClick={handleNewCanvas} />
+      <Row icon="frame"   label="Frames"           onClick={() => { onOpenFrames && onOpenFrames(); }} />
       {restoreVisible && (
         <Row icon="refresh" label="Restore last project" onClick={handleRestore} />
       )}

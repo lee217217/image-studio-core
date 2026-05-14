@@ -12,6 +12,8 @@ import StyleSheet from './sheets/StyleSheet.jsx';
 import LayersSheet from './sheets/LayersSheet.jsx';
 import ExportSheet from './sheets/ExportSheet.jsx';
 import MoreSheet from './sheets/MoreSheet.jsx';
+import StickersSheet from './sheets/StickersSheet.jsx';
+import FramesSheet from './sheets/FramesSheet.jsx';
 
 /**
  * MobileApp — dedicated mobile shell.
@@ -42,18 +44,23 @@ export default function MobileApp({ canvasStage, onOpenNewCanvas }) {
   const closeSheet = () => setActiveSheet(null);
 
   const titles = {
-    add:    'Add to canvas',
-    adjust: 'Adjust image',
-    crop:   'Crop & resize',
-    style:  'Layer style',
-    layers: 'Layers',
-    export: 'Save & export',
-    more:   'More options'
+    add:      'Add to canvas',
+    adjust:   'Adjust image',
+    crop:     'Crop & resize',
+    style:    'Layer style',
+    stickers: 'Stickers',
+    frames:   'Frames',
+    layers:   'Layers',
+    export:   'Save & export',
+    more:     'More options'
   };
 
   return (
     <div className="h-full w-full flex flex-col bg-surface-0 pt-[env(safe-area-inset-top)]">
-      <MobileTopBar onOpenMore={() => openSheet('more')} />
+      <MobileTopBar
+        onOpenMore={() => openSheet('more')}
+        onOpenExport={() => openSheet('export')}
+      />
       <MobileCanvasStage canvasStage={canvasStage} />
 
       {/* Selection HUD floats above the canvas and the dock backdrop. */}
@@ -66,13 +73,15 @@ export default function MobileApp({ canvasStage, onOpenNewCanvas }) {
         onClose={closeSheet}
         title={titles[activeSheet] || ''}
       >
-        {activeSheet === 'add'    && <AddSheet    onClose={closeSheet} />}
-        {activeSheet === 'adjust' && <AdjustSheet onClose={closeSheet} />}
-        {activeSheet === 'crop'   && <CropSheet   onClose={closeSheet} />}
-        {activeSheet === 'style'  && <StyleSheet  onClose={closeSheet} />}
-        {activeSheet === 'layers' && <LayersSheet onClose={closeSheet} />}
-        {activeSheet === 'export' && <ExportSheet onClose={closeSheet} />}
-        {activeSheet === 'more'   && <MoreSheet   onClose={closeSheet} onOpenNewCanvas={onOpenNewCanvas} />}
+        {activeSheet === 'add'      && <AddSheet      onClose={closeSheet} />}
+        {activeSheet === 'adjust'   && <AdjustSheet   onClose={closeSheet} />}
+        {activeSheet === 'crop'     && <CropSheet     onClose={closeSheet} />}
+        {activeSheet === 'style'    && <StyleSheet    onClose={closeSheet} />}
+        {activeSheet === 'stickers' && <StickersSheet onClose={closeSheet} />}
+        {activeSheet === 'frames'   && <FramesSheet   onClose={closeSheet} />}
+        {activeSheet === 'layers'   && <LayersSheet   onClose={closeSheet} />}
+        {activeSheet === 'export'   && <ExportSheet   onClose={closeSheet} />}
+        {activeSheet === 'more'     && <MoreSheet     onClose={closeSheet} onOpenNewCanvas={onOpenNewCanvas} onOpenFrames={() => openSheet('frames')} />}
       </MobileSheet>
     </div>
   );
