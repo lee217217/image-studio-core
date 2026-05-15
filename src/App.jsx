@@ -14,6 +14,7 @@ import CropResizePanel from './components/CropResizePanel.jsx';
 import LayerStylePanel from './components/LayerStylePanel.jsx';
 import StickerPanel from './components/StickerPanel.jsx';
 import FramePanel from './components/FramePanel.jsx';
+import TextEffectsPanel from './components/TextEffectsPanel.jsx';
 import SizePresetModal from './components/SizePresetModal.jsx';
 import ExportPanel from './components/ExportPanel.jsx';
 import Toast from './components/Toast.jsx';
@@ -115,6 +116,7 @@ function renderSidePanel(activePanel, onClose) {
     case 'style':     return <LayerStylePanel onClose={onClose} />;
     case 'stickers':  return <StickerPanel onClose={onClose} />;
     case 'frames':    return <FramePanel onClose={onClose} />;
+    case 'textEffects': return <TextEffectsPanel onClose={onClose} />;
     case 'layers':    return <LayersPanel onClose={onClose} />;
     case 'ai':        return <AiPanel onClose={onClose} />;
     default:          return null;

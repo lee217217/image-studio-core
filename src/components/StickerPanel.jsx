@@ -1,21 +1,37 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import Icon from './Icon.jsx';
+import { PackTabRow } from './ChipStrip.jsx';
 import { useEditor } from '../hooks/useEditor.js';
-import { STICKER_PACKS, getAllStickers, addStickerToCanvas } from '../editor/stickerPacks/index.js';
+import {
+  STICKER_PACKS,
+  getAllStickers,
+  getStickerById,
+  addStickerToCanvas,
+  getRecentStickerIds,
+} from '../editor/stickerPacks/index.js';
 
 /**
  * Sticker library panel. Search + pack tabs + grid of SVG tiles.
  * Clicking a tile drops the sticker on the canvas centered.
+ * Includes a "Recent" row populated from localStorage (last 12).
  */
 export default function StickerPanel({ onClose }) {
   const { canvas } = useEditor();
-  const [tab, setTab] = useState('all'); // 'all' | pack.id
+  const [tab, setTab] = useState('all');
   const [query, setQuery] = useState('');
+  // Bump on every add so the Recent row re-reads localStorage.
+  const [recentVersion, setRecentVersion] = useState(0);
 
   const tabs = useMemo(
     () => [{ id: 'all', label: 'All' }, ...STICKER_PACKS.map((p) => ({ id: p.id, label: p.name }))],
     []
   );
+
+  const recentStickers = useMemo(() => {
+    const ids = getRecentStickerIds();
+    return ids.map((id) => getStickerById(id)).filter(Boolean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentVersion]);
 
   const stickers = useMemo(() => {
     const all = getAllStickers();
@@ -29,13 +45,21 @@ export default function StickerPanel({ onClose }) {
     });
   }, [tab, query]);
 
-  function onPick(id) {
-    if (!canvas) return;
-    addStickerToCanvas(canvas, id).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.warn('Sticker add failed:', err && err.message);
-    });
-  }
+  const onPick = useCallback(
+    (id) => {
+      if (!canvas) return;
+      addStickerToCanvas(canvas, id)
+        .then(() => setRecentVersion((v) => v + 1))
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.warn('Sticker add failed:', err && err.message);
+        });
+    },
+    [canvas]
+  );
+
+  // Recent row is hidden while user is actively searching (search has priority).
+  const showRecent = !query.trim() && recentStickers.length > 0;
 
   return (
     <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll text-surface-900 dark:text-surface-50 flex flex-col">
@@ -62,21 +86,33 @@ export default function StickerPanel({ onClose }) {
           />
         </div>
 
-        <div className="flex items-center gap-1 flex-wrap">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={
-                tab === t.id
-                  ? 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500 text-white'
-                  : 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-100 text-surface-700 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-200 dark:hover:bg-surface-700'
-              }
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <PackTabRow tabs={tabs} activeId={tab} onChange={setTab} />
+
+        {showRecent && (
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1.5 px-1">
+              Recent
+            </div>
+            <div className="flex gap-2 overflow-x-auto thin-scroll pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x overscroll-x-contain"
+                 style={{ WebkitOverflowScrolling: 'touch' }}>
+              {recentStickers.map((s) => (
+                <button
+                  key={`recent-${s.id}`}
+                  onClick={() => onPick(s.id)}
+                  className="shrink-0 snap-start w-14 h-14 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 flex items-center justify-center p-1.5 hover:ring-2 hover:ring-blue-500 transition"
+                  title={s.name}
+                  aria-label={`Add ${s.name} (recent)`}
+                >
+                  <span
+                    className="block w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                    // eslint-disable-next-line react/no-danger
+                    dangerouslySetInnerHTML={{ __html: s.svg }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {stickers.length === 0 ? (
           <div className="text-center text-xs text-surface-500 dark:text-surface-400 py-8">
@@ -93,7 +129,7 @@ export default function StickerPanel({ onClose }) {
                 aria-label={`Add sticker ${s.name}`}
               >
                 <span
-                  className="block w-full h-full"
+                  className="block w-full h-full [&>svg]:w-full [&>svg]:h-full"
                   // eslint-disable-next-line react/no-danger
                   dangerouslySetInnerHTML={{ __html: s.svg }}
                 />

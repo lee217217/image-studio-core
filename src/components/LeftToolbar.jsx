@@ -62,6 +62,7 @@ export default function LeftToolbar({ activePanel, onActivatePanel, mobile = fal
     { key: 'style',     name: 'Style & effects', icon: 'sparkle' },
     { key: 'stickers',  name: 'Stickers', icon: 'heart' },
     { key: 'frames',    name: 'Frames', icon: 'frame' },
+    { key: 'textEffects', name: 'Text effects', icon: 'text' },
     { key: 'layers',    name: 'Layers', icon: 'layers' },
     { key: 'ai',        name: 'AI tools', icon: 'sparkle' }
   ];

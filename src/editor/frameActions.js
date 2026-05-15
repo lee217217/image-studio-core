@@ -77,6 +77,29 @@ export function applyFrame(canvas, frameId) {
         // Bring frame to top of stack but below selection overlays.
         canvas.bringToFront(group);
         target.__frameOverlayId = frame.id;
+
+        // Optional editable text slot for Magazine/Comic frames.
+        if (frame.textSlot && typeof fabric.IText === 'function') {
+          const slot = frame.textSlot;
+          const tx = bound.left + w * (slot.x != null ? slot.x : 0.5);
+          const ty = bound.top + h * (slot.y != null ? slot.y : 0.5);
+          const text = new fabric.IText(slot.placeholder || 'Title', {
+            left: tx,
+            top: ty,
+            originX: 'center',
+            originY: 'center',
+            fontFamily: slot.fontFamily || 'Inter, system-ui, sans-serif',
+            fontSize: slot.fontSize || 32,
+            fontWeight: slot.fontWeight || 700,
+            fill: slot.fill || '#111111',
+            textAlign: 'center',
+            editable: true,
+            __frameTextSlot: frame.id,
+          });
+          canvas.add(text);
+          canvas.bringToFront(text);
+        }
+
         canvas.requestRenderAll();
         resolve(true);
       });
@@ -111,6 +134,9 @@ export function removeFrame(canvas, target) {
   // 2. Strip overlay frames belonging to this image
   const overlays = canvas.getObjects().filter((o) => o && o.__frameId && o !== img);
   overlays.forEach((o) => canvas.remove(o));
+  // 3. Strip frame text slots
+  const textSlots = canvas.getObjects().filter((o) => o && o.__frameTextSlot);
+  textSlots.forEach((o) => canvas.remove(o));
   img.__frameOverlayId = null;
   canvas.requestRenderAll();
 }

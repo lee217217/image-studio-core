@@ -4,8 +4,29 @@ import { ANIMALS_PACK } from './animalsPack.js';
 import { CUTE_PACK } from './cutePack.js';
 import { SYMBOLS_PACK } from './symbolsPack.js';
 import { SPEECH_PACK } from './speechPack.js';
+import { FOOD_PACK } from './foodPack.js';
+import { WEATHER_PACK } from './weatherPack.js';
+import { TRAVEL_PACK } from './travelPack.js';
+import { SPORT_PACK } from './sportPack.js';
+import { SEASONAL_PACK } from './seasonalPack.js';
+import { TECH_PACK } from './techPack.js';
+import { pushRecentSticker } from './recent.js';
 
-export const STICKER_PACKS = [HEARTS_PACK, ANIMALS_PACK, CUTE_PACK, SYMBOLS_PACK, SPEECH_PACK];
+export const STICKER_PACKS = [
+  HEARTS_PACK,
+  ANIMALS_PACK,
+  CUTE_PACK,
+  SYMBOLS_PACK,
+  SPEECH_PACK,
+  FOOD_PACK,
+  WEATHER_PACK,
+  TRAVEL_PACK,
+  SPORT_PACK,
+  SEASONAL_PACK,
+  TECH_PACK,
+];
+
+export { getRecentStickerIds, clearRecentStickers } from './recent.js';
 
 export function getAllStickers() {
   return STICKER_PACKS.flatMap((pack) =>
@@ -77,5 +98,6 @@ export async function addStickerToCanvas(canvas, stickerId, opts = {}) {
   canvas.add(group);
   canvas.setActiveObject(group);
   canvas.requestRenderAll();
+  try { pushRecentSticker(sticker.id); } catch { /* ignore */ }
   return group;
 }

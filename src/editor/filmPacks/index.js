@@ -1,8 +1,21 @@
 import { KODAK_PACK } from './kodakPack.js';
 import { FUJI_PACK } from './fujiPack.js';
+import { CINESTILL_PACK } from './cinestillPack.js';
+import { LOMO_PACK } from './lomoPack.js';
+import { POLAROID_PACK } from './polaroidPack.js';
+import { AGFA_PACK } from './agfaPack.js';
+import { ILFORD_PACK } from './ilfordPack.js';
 import { applyImageFilters, isImageObject, FILTER_DEFAULTS } from '../imageFilters.js';
 
-export const FILM_PACKS = [KODAK_PACK, FUJI_PACK];
+export const FILM_PACKS = [
+  KODAK_PACK,
+  FUJI_PACK,
+  CINESTILL_PACK,
+  LOMO_PACK,
+  POLAROID_PACK,
+  AGFA_PACK,
+  ILFORD_PACK,
+];
 
 export function getAllPresets() {
   return FILM_PACKS.flatMap((p) =>

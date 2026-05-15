@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
+import ChipStrip, { PackTabRow } from './ChipStrip.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import {
@@ -60,13 +61,9 @@ export default function ImageAdjustPanel({ onClose }) {
   }
 
   // ---- Film looks ----
-  const [filmTab, setFilmTab] = useState('all'); // 'all' | 'kodak' | 'fuji'
-  const lastFilmTapRef = useRef(0);
+  const [filmTab, setFilmTab] = useState('all');
   function onFilmPreset(presetId) {
     if (!image || !canvas) return;
-    const now = Date.now();
-    if (now - lastFilmTapRef.current < 150) return; // throttle 150ms
-    lastFilmTapRef.current = now;
     if (applyFilmPreset(canvas, presetId)) {
       setState(getImageFilterState(image));
     }
@@ -75,6 +72,27 @@ export default function ImageAdjustPanel({ onClose }) {
   const visibleFilmPresets = filmTab === 'all'
     ? getAllPresets()
     : getAllPresets().filter((p) => p.pack === filmTab);
+  const filmTabs = [
+    { id: 'all', label: 'All' },
+    ...FILM_PACKS.map((p) => ({ id: p.id, label: p.name })),
+  ];
+  const filmChipItems = visibleFilmPresets.map((p) => ({
+    id: p.id,
+    ariaLabel: `Apply ${p.name}`,
+    render: () => (
+      <>
+        <div
+          className="h-12 w-full rounded-lg mb-2 border border-surface-200 dark:border-surface-700"
+          style={{ background: p.swatch || '#888' }}
+        />
+        <div className="text-[11px] font-semibold leading-tight truncate">{p.name}</div>
+        <div className="text-[10px] text-surface-500 dark:text-surface-400 truncate mt-0.5">{p.desc}</div>
+        <div className="mt-1 inline-block text-[9px] uppercase tracking-wider font-semibold text-surface-500 dark:text-surface-400 bg-surface-100 dark:bg-surface-800 rounded px-1.5 py-0.5">
+          {p.packName}
+        </div>
+      </>
+    ),
+  }));
 
   return (
     <aside className="w-full md:w-80 md:shrink-0 border-r border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-950 overflow-y-auto thin-scroll text-surface-900 dark:text-surface-50">
@@ -86,54 +104,15 @@ export default function ImageAdjustPanel({ onClose }) {
         <div className="p-3 space-y-4">
           {/* Film Looks */}
           <Section title="Film Looks">
-            <div className="flex items-center gap-1 mb-2">
-              {[
-                { id: 'all', label: 'All' },
-                ...FILM_PACKS.map((p) => ({ id: p.id, label: p.name }))
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilmTab(tab.id)}
-                  className={
-                    filmTab === tab.id
-                      ? 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500 text-white'
-                      : 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-100 text-surface-700 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-200 dark:hover:bg-surface-700'
-                  }
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="mb-2">
+              <PackTabRow tabs={filmTabs} activeId={filmTab} onChange={setFilmTab} />
             </div>
-            <div className="-mx-3 px-3 overflow-x-auto thin-scroll">
-              <div className="flex gap-2 pb-1">
-                {visibleFilmPresets.map((p) => {
-                  const isActive = activeFilmId === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => onFilmPreset(p.id)}
-                      className={
-                        'shrink-0 w-28 rounded-2xl border p-3 text-left bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-50 transition-all ' +
-                        (isActive
-                          ? 'border-blue-500 ring-2 ring-blue-500'
-                          : 'border-surface-200 dark:border-surface-800 hover:border-blue-400 dark:hover:border-blue-500')
-                      }
-                      title={p.name}
-                    >
-                      <div
-                        className="h-12 w-full rounded-lg mb-2 border border-surface-200 dark:border-surface-700"
-                        style={{ background: p.swatch || '#888' }}
-                      />
-                      <div className="text-[11px] font-semibold leading-tight truncate">{p.name}</div>
-                      <div className="text-[10px] text-surface-500 dark:text-surface-400 truncate mt-0.5">{p.desc}</div>
-                      <div className="mt-1 inline-block text-[9px] uppercase tracking-wider font-semibold text-surface-500 dark:text-surface-400 bg-surface-100 dark:bg-surface-800 rounded px-1.5 py-0.5">
-                        {p.packName}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <ChipStrip
+              items={filmChipItems}
+              activeId={activeFilmId}
+              onTap={onFilmPreset}
+              resetKey={filmTab}
+            />
           </Section>
 
           {/* Presets */}

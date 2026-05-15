@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Icon from './Icon.jsx';
+import { PackTabRow } from './ChipStrip.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { FRAME_PACKS, getAllFrames } from '../editor/framePacks/index.js';
 import { applyFrame, removeFrame } from '../editor/frameActions.js';
@@ -43,21 +44,7 @@ export default function FramePanel({ onClose }) {
       </div>
 
       <div className="p-3 space-y-3">
-        <div className="flex items-center gap-1 flex-wrap">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={
-                tab === t.id
-                  ? 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500 text-white'
-                  : 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-100 text-surface-700 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-200 dark:hover:bg-surface-700'
-              }
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <PackTabRow tabs={tabs} activeId={tab} onChange={setTab} />
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {frames.map((f) => (

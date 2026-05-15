@@ -100,6 +100,66 @@ export function tealOrangeMatrix(strength = 0.2) {
   ];
 }
 
+/**
+ * Halation filter — approximates the Cinestill-style red bloom by boosting
+ * the red channel and lifting its black point slightly. Combined with a mild
+ * Blur in the slider stack, this produces the classic warm-glow halation
+ * around highlights without needing a real convolution pass.
+ *
+ * `redBloom`: how much red is amplified (0..0.5 typical).
+ * `lift`: small additive offset to red (0..0.06 typical) so even shadows pick
+ *         up a touch of warmth.
+ */
+export function halationFilter(redBloom = 0.25, lift = 0.03) {
+  return [
+    1 + redBloom, 0,          0,          0, lift,
+    0,            1 + redBloom * 0.08, 0, 0, 0,
+    0,            0,          1 - redBloom * 0.15, 0, 0,
+    0,            0,          0,          1, 0,
+  ];
+}
+
+/**
+ * Cross-process matrix — used by Lomo / X-Pro looks. Swaps channels around
+ * to produce the saturated, slightly off-balance look of slide film processed
+ * in C-41 chemistry.
+ */
+export function crossProcessMatrix(strength = 0.25) {
+  const s = strength;
+  return [
+    1 + s * 0.8, -s * 0.1, s * 0.1, 0, -s * 0.05,
+    s * 0.05, 1 + s * 0.4, -s * 0.15, 0, 0,
+    -s * 0.05, s * 0.1, 1 + s * 0.6, 0, s * 0.05,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+/**
+ * Redscale-style matrix — desaturates blues and greens, pushes everything red.
+ */
+export function redscaleMatrix(strength = 0.6) {
+  const s = strength;
+  return [
+    1 + s * 0.4, s * 0.3, s * 0.2, 0, 0,
+    s * 0.05, 1 - s * 0.5, 0, 0, 0,
+    0, 0, 1 - s * 0.75, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+/**
+ * Tungsten/night matrix — bluish cast with raised red channel offset to mimic
+ * tungsten-balanced film exposed at night. Used for Cinestill 800T.
+ */
+export function tungstenMatrix(coolStrength = 0.25, redOffset = 0.05) {
+  return [
+    1 - coolStrength * 0.25, 0, 0, 0, redOffset,
+    0, 1 - coolStrength * 0.05, 0, 0, 0,
+    0, 0, 1 + coolStrength * 0.55, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
 /** Bleach bypass — desaturate strongly while boosting contrast offset. */
 export function bleachMatrix(desat = 0.55, contrast = 0.1) {
   const k = 1 - desat;

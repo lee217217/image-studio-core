@@ -2,6 +2,7 @@ import Icon from '../components/Icon.jsx';
 import { useEditor } from '../hooks/useEditor.js';
 import { useEditorStore } from '../store/editorStore.js';
 import { deleteActive, duplicateActive } from '../editor/editorActions.js';
+import { isTextObject } from '../editor/textEffects.js';
 
 /**
  * Floating HUD that appears just above the dock when a Fabric object is
@@ -15,13 +16,16 @@ import { deleteActive, duplicateActive } from '../editor/editorActions.js';
  * is simpler and more reliable than calling `canvas.getActiveObject()`
  * which doesn't re-evaluate when the active object changes.
  */
-export default function MobileSelectionHud({ onOpenStyle }) {
+export default function MobileSelectionHud({ onOpenStyle, onOpenTextEffects }) {
   const { canvas } = useEditor();
   // CanvasWorkspace mirrors Fabric's selection events into `selectedIds`.
   // Subscribing here makes the HUD re-render on every selection change.
   const selectedIds = useEditorStore((s) => s.selectedIds);
 
   if (!selectedIds || selectedIds.length === 0) return null;
+
+  const active = canvas ? canvas.getActiveObject() : null;
+  const showTextEffects = !!(active && isTextObject(active) && onOpenTextEffects);
 
   return (
     <div
@@ -32,6 +36,9 @@ export default function MobileSelectionHud({ onOpenStyle }) {
         <Chip icon="copy"  label="Duplicate" onClick={() => canvas && duplicateActive(canvas)} />
         <Chip icon="trash" label="Delete"    onClick={() => canvas && deleteActive(canvas)} danger />
         <Chip icon="sparkle" label="Style"   onClick={onOpenStyle} />
+        {showTextEffects && (
+          <Chip icon="text" label="Text fx" onClick={onOpenTextEffects} />
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import ExportSheet from './sheets/ExportSheet.jsx';
 import MoreSheet from './sheets/MoreSheet.jsx';
 import StickersSheet from './sheets/StickersSheet.jsx';
 import FramesSheet from './sheets/FramesSheet.jsx';
+import TextEffectsSheet from './sheets/TextEffectsSheet.jsx';
 
 /**
  * MobileApp — dedicated mobile shell.
@@ -50,6 +51,7 @@ export default function MobileApp({ canvasStage, onOpenNewCanvas }) {
     style:    'Layer style',
     stickers: 'Stickers',
     frames:   'Frames',
+    textEffects: 'Text effects',
     layers:   'Layers',
     export:   'Save & export',
     more:     'More options'
@@ -64,7 +66,10 @@ export default function MobileApp({ canvasStage, onOpenNewCanvas }) {
       <MobileCanvasStage canvasStage={canvasStage} />
 
       {/* Selection HUD floats above the canvas and the dock backdrop. */}
-      <MobileSelectionHud onOpenStyle={() => openSheet('style')} />
+      <MobileSelectionHud
+        onOpenStyle={() => openSheet('style')}
+        onOpenTextEffects={() => openSheet('textEffects')}
+      />
 
       <MobileDock active={activeSheet} onOpen={openSheet} />
 
@@ -79,6 +84,7 @@ export default function MobileApp({ canvasStage, onOpenNewCanvas }) {
         {activeSheet === 'style'    && <StyleSheet    onClose={closeSheet} />}
         {activeSheet === 'stickers' && <StickersSheet onClose={closeSheet} />}
         {activeSheet === 'frames'   && <FramesSheet   onClose={closeSheet} />}
+        {activeSheet === 'textEffects' && <TextEffectsSheet onClose={closeSheet} />}
         {activeSheet === 'layers'   && <LayersSheet   onClose={closeSheet} />}
         {activeSheet === 'export'   && <ExportSheet   onClose={closeSheet} />}
         {activeSheet === 'more'     && <MoreSheet     onClose={closeSheet} onOpenNewCanvas={onOpenNewCanvas} onOpenFrames={() => openSheet('frames')} />}
